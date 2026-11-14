@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Run {{ r.run_date }}{% endblock %}
+{% block content %}
+<p><a href="/clients/{{ c.id }}">← {{ c.name }}</a></p>
+<h1>Run {{ r.run_date }}</h1>
+<p class="sub">{{ r.kind|nl }} · {{ 'AI-agent' if r.mode == 'ai' else 'regels' }} · <span class="chip {{ r.status }}">{{ r.status|nl }}</span></p>
+<div class="card"><pre class="report">{{ r.report }}</pre>{% if r.error %}<p class="bad">{{ r.error }}</p>{% endif %}</div>
+<h2>Acties</h2>
+<div class="table-wrap"><table><thead><tr><th>Actie</th><th>Status</th><th>Detail</th><th>Reden</th></tr></thead><tbody>
+{% for a in r.actions %}<tr><td>{{ a.type|actie }}</td><td><span class="chip {{ a.status }}">{{ a.status|nl }}</span></td><td style="white-space:normal">{{ a.message }}</td><td style="white-space:normal" class="muted">{{ a.reason }}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">Geen acties.</td></tr>{% endfor %}
+</tbody></table></div>
+{% if r.analysis and r.analysis.proposals %}
+<h2>Regelvoorstellen (input voor de agent)</h2>
+<div class="table-wrap"><table><thead><tr><th>Type</th><th>Campagne</th><th>Reden</th></tr></thead><tbody>
+{% for p in r.analysis.proposals %}<tr><td>{{ p.type|actie }}</td><td>{{ p.campaign_id }}</td><td style="white-space:normal">{{ p.reason }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% endif %}
+{% endblock %}

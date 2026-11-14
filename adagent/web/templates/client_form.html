@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ c.name if c and c.id else 'Nieuwe klant' }}{% endblock %}
+{% block content %}
+{% set editing = c and c.id %}
+<h1>{{ 'Klant bewerken' if editing else 'Nieuwe klant' }}</h1>
+<p class="sub">{% if editing %}Wijzigingen in budget gaan direct mee in de pacing; nieuwe thema's worden bij de volgende run gelanceerd, verwijderde thema's gepauzeerd.{% else %}Vul budget en thema's in — de rest doet de agent: strategie, campagnes, teksten, lancering en dagelijkse optimalisatie.{% endif %}</p>
+{% if errors %}<div class="errors">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+<form method="post" action="{{ '/clients/%d/edit'|format(c.id) if editing else '/clients' }}" class="card">
+  <div class="cols">
+    <div><label>Naam klant</label><input type="text" name="name" required value="{{ c.name if c else '' }}"></div>
+    <div><label>Website <span class="hint">(landingspagina)</span></label><input type="url" name="website" required placeholder="https://" value="{{ c.website if c else '' }}"></div>
+  </div>
+  <div class="cols">
+    <div><label>Maandbudget (€)</label><input type="number" step="1" min="1" name="monthly_budget" required value="{{ (c.monthly_budget|int) if c and c.monthly_budget else '' }}"></div>
+    <div><label>Regio <span class="hint">(landcodes, bv. NL, BE)</span></label><input type="text" name="locations" value="{{ (c.locations|join(', ')) if c else 'NL' }}"></div>
+    <div><label>Taal</label><select name="language">{% for code, l in [('nl','Nederlands'),('en','Engels'),('de','Duits'),('fr','Frans')] %}<option value="{{ code }}" {{ 'selected' if c and c.language==code }}>{{ l }}</option>{% endfor %}</select></div>
+  </div>
+  <label>Thema's <span class="hint">(één per regel — bv. producten, diensten of campagnes)</span></label>
+  <textarea name="themes" required>{{ (c.themes|join('\n')) if c else '' }}</textarea>
+
+  <label>Doelen</label>
+  <div class="checks">{% for o in OBJECTIVES %}<label><input type="checkbox" name="obj_{{ o }}" value="1" {{ 'checked' if (not c) or (o in (c.objectives or [])) }}> {{ OBJECTIVE_LABELS[o] }}</label>{% endfor %}</div>
+  <label>Platformen</label>
+  <div class="checks">{% for p in PLATFORMS %}<label><input type="checkbox" name="pf_{{ p }}" value="1" {{ 'checked' if (not c) or (p in (c.platforms or [])) }}> {{ PLATFORM_LABELS[p] }}</label>{% endfor %}</div>
+
+  <details style="margin-top:18px" {{ 'open' if editing }}><summary>Context voor de AI (aanbevolen)</summary>
+    <label>Omschrijving bedrijf / aanbod</label><textarea name="description">{{ c.description if c else '' }}</textarea>
+    <label>Doelgroep</label><textarea name="audience">{{ c.audience if c else '' }}</textarea>
+  </details>
+
+  <details style="margin-top:12px" {{ 'open' if editing }}><summary>KPI-doelen (optioneel — anders bepaalt de agent de benchmark)</summary>
+    <div class="cols">
+      <div><label>Doel-CPM bereik (€)</label><input type="text" name="target_cpm" value="{{ c.target_cpm if c and c.target_cpm else '' }}"></div>
+      <div><label>Doel-CPC kliks (€)</label><input type="text" name="target_cpc" value="{{ c.target_cpc if c and c.target_cpc else '' }}"></div>
+      <div><label>Doel-CPL leads (€)</label><input type="text" name="target_cpl" value="{{ c.target_cpl if c and c.target_cpl else '' }}"></div>
+      <div><label>Doel-ROAS sales</label><input type="text" name="target_roas" value="{{ c.target_roas if c and c.target_roas else '' }}"></div>
+    </div>
+  </details>
+
+  <details style="margin-top:12px" {{ 'open' if settings.live }}><summary>Advertentieaccounts {{ '(verplicht in live-modus)' if settings.live else '(nodig voor live-modus)' }}</summary>
+    <div class="cols">
+      <div><label>Meta ad account ID</label><input type="text" name="meta_ad_account_id" placeholder="act_123…" value="{{ c.meta_ad_account_id if c else '' }}"></div>
+      <div><label>Meta pagina-ID</label><input type="text" name="meta_page_id" value="{{ c.meta_page_id if c else '' }}"></div>
+      <div><label>Meta pixel-ID</label><input type="text" name="meta_pixel_id" value="{{ c.meta_pixel_id if c else '' }}"></div>
+      <div><label>Google Ads customer ID</label><input type="text" name="google_customer_id" placeholder="123-456-7890" value="{{ c.google_customer_id if c else '' }}"></div>
+      <div><label>LinkedIn ad account ID</label><input type="text" name="linkedin_ad_account_id" value="{{ c.linkedin_ad_account_id if c else '' }}"></div>
+      <div><label>LinkedIn organisatie-ID</label><input type="text" name="linkedin_org_id" value="{{ c.linkedin_org_id if c else '' }}"></div>
+      <div><label>LinkedIn lead form ID</label><input type="text" name="linkedin_lead_form_id" value="{{ c.linkedin_lead_form_id if c else '' }}"></div>
+    </div>
+  </details>
+
+  <div class="checks" style="margin-top:18px">
+    <label><input type="checkbox" name="autopilot" value="1" {{ 'checked' if (not c) or c.autopilot }}> Autopilot — agent voert optimalisaties zelf uit (uit = alleen voorstellen, campagnes starten gepauzeerd)</label>
+    {% if not editing %}<label><input type="checkbox" name="launch_now" value="1" checked> Direct plan maken en lanceren</label>{% endif %}
+  </div>
+  <div class="actions" style="margin-top:18px">
+    <button class="btn primary" type="submit">{{ 'Opslaan' if editing else 'Klant aanmaken' }}</button>
+    <a class="btn" href="{{ '/clients/%d'|format(c.id) if editing else '/' }}">Annuleren</a>
+  </div>
+</form>
+{% endblock %}

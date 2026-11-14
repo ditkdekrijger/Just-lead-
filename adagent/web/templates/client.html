@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block content %}
+{% set p = snap.pacing %}{% set t = snap.totals_last_7_days %}
+<div class="actions" style="justify-content:space-between;align-items:flex-start">
+  <div>
+    <h1>{{ c.name }}</h1>
+    <p class="sub"><a href="{{ c.website }}" target="_blank" rel="noopener">{{ c.website }}</a> · {{ c.themes|join(' · ') }}</p>
+  </div>
+  <div class="actions">
+    <form class="inline" method="post" action="/clients/{{ c.id }}/run"><button class="btn primary">Nu analyseren &amp; optimaliseren</button></form>
+    <form class="inline" method="post" action="/clients/{{ c.id }}/autopilot"><button class="btn">Autopilot: {{ 'aan' if c.autopilot else 'uit' }}</button></form>
+    {% if c.status == 'paused' %}
+    <form class="inline" method="post" action="/clients/{{ c.id }}/resume"><button class="btn">Hervatten</button></form>
+    {% else %}
+    <form class="inline" method="post" action="/clients/{{ c.id }}/pause" onsubmit="return confirm('Alle campagnes van {{ c.name }} pauzeren?')"><button class="btn danger">Alles pauzeren</button></form>
+    {% endif %}
+    <a class="btn" href="/clients/{{ c.id }}/edit">Bewerken</a>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card stat"><div class="k">Besteed deze maand</div><div class="v">{{ p.spent_mtd|euro(0) }}</div><div class="muted">van {{ p.monthly_budget|euro(0) }}</div>
+    <div class="bar" style="margin-top:6px"><i style="width:{{ [(p.spent_mtd / p.monthly_budget * 100) if p.monthly_budget else 0, 100]|min }}%"></i></div></div>
+  <div class="card stat"><div class="k">Dagbudget nu / doel</div><div class="v">{{ p.current_daily_total|euro(0) }}</div><div class="muted">doel {{ p.target_daily_total|euro(2) }} · nog {{ p.days_left }} dagen</div></div>
+  <div class="card stat"><div class="k">Bereik 7d</div><div class="v">{{ t.reach|num }}</div><div class="muted">{{ t.impressions|num }} vertoningen</div></div>
+  <div class="card stat"><div class="k">Kliks 7d</div><div class="v">{{ t.clicks|num }}</div><div class="muted">CPC {{ t.cpc|euro }}</div></div>
+  <div class="card stat"><div class="k">Leads 7d</div><div class="v">{{ t.leads|num }}</div><div class="muted">CPL {{ t.cpl|euro }}{% if c.target_cpl %} · doel {{ c.target_cpl|euro }}{% endif %}</div></div>
+  <div class="card stat"><div class="k">Sales 7d</div><div class="v">{{ t.conversions|num }}</div><div class="muted">ROAS {{ t.roas|num(2) }} · {{ t.revenue|euro(0) }}</div></div>
+</div>
+
+<h2 id="rapport">Laatste rapport {% if last %}<span class="muted" style="font-weight:400">· {{ last.run_date }} · {{ 'AI' if last.mode == 'ai' else 'regels' }}</span>{% endif %}</h2>
+<div class="card">{% if last %}<pre class="report">{{ last.report }}</pre>{% if last.error %}<p class="bad">{{ last.error }}</p>{% endif %}{% else %}<p class="muted">Nog geen run. Klik op “Nu analyseren” om het plan te maken en te lanceren.</p>{% endif %}</div>
+
+<h2>Campagnes</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Platform</th><th>Doel</th><th>Thema</th><th>Status</th><th class="n">Dagbudget</th><th class="n">Besteed 7d</th><th class="n">Vertoningen</th><th class="n">CTR</th><th class="n">Kliks</th><th class="n">Leads</th><th class="n">Sales</th><th class="n">Primaire KPI</th><th>Ads</th></tr></thead>
+<tbody>
+{% for x in snap.campaigns %}{% set k = x.last_7_days %}{% set b = snap.benchmarks.get(x.objective, {}) %}
+<tr>
+  <td>{{ PLATFORM_LABELS[x.platform] }}</td>
+  <td>{{ OBJECTIVE_LABELS[x.objective] }}</td>
+  <td>{{ x.theme }}</td>
+  <td><span class="chip {{ x.status }}">{{ x.status|nl }}</span>{% if x.in_learning_phase %} <span class="chip">leerfase</span>{% endif %}</td>
+  <td class="n">{{ x.daily_budget|euro }}</td>
+  <td class="n">{{ k.spend|euro }}</td>
+  <td class="n">{{ k.impressions|num }}</td>
+  <td class="n">{{ k.ctr|pct }}</td>
+  <td class="n">{{ k.clicks|num }}</td>
+  <td class="n">{{ k.leads|num(1) }}</td>
+  <td class="n">{{ k.conversions|num(1) }}</td>
+  <td class="n">{% set v = k[x.primary_kpi] %}{{ x.primary_kpi|upper }} {{ v|num(2) }}
+    {% if v is not none and b.reference %}{% set better = (v >= b.reference) if x.primary_kpi_higher_is_better else (v <= b.reference) %}<span class="{{ 'good' if better else 'bad' }}">{{ '▲' if better else '▼' }}</span>{% endif %}</td>
+  <td><details><summary>{{ x.ads|selectattr('status','equalto','active')|list|length }}/{{ x.ads|length }}</summary>
+    {% for a in x.ads %}<div style="white-space:normal;max-width:360px;margin:6px 0;font-size:13px"><span class="chip {{ a.status }}">{{ a.status|nl }}</span> <b>{{ a.headline }}</b> <span class="muted">gen {{ a.generation }} · CTR {{ a.last_7_days.ctr|pct }}</span><br><span class="muted">{{ a.primary_text }}</span></div>{% endfor %}
+  </details></td>
+</tr>
+{% else %}<tr><td colspan="13" class="muted">Nog geen campagnes.</td></tr>{% endfor %}
+{% for x in c.campaigns if x.status == 'error' %}
+<tr><td>{{ PLATFORM_LABELS[x.platform] }}</td><td>{{ OBJECTIVE_LABELS[x.objective] }}</td><td>{{ x.theme }}</td><td><span class="chip error">fout</span></td><td colspan="9" class="bad" style="white-space:normal">{{ x.error[:300] }}</td></tr>
+{% endfor %}
+</tbody></table></div>
+
+<h2>Acties van de agent</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Tijd</th><th>Actie</th><th>Status</th><th>Detail</th><th>Reden</th></tr></thead>
+<tbody>
+{% for a in actions %}
+<tr><td>{{ a.created_at.strftime('%d-%m %H:%M') }}</td><td>{{ a.type|actie }}</td><td><span class="chip {{ a.status }}">{{ a.status|nl }}</span></td>
+<td style="white-space:normal;max-width:380px">{{ a.message }}</td><td style="white-space:normal;max-width:380px" class="muted">{{ a.reason }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">Nog geen acties.</td></tr>{% endfor %}
+</tbody></table></div>
+
+<h2>Runs</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Datum</th><th>Soort</th><th>Modus</th><th>Status</th><th class="n">Acties</th></tr></thead>
+<tbody>{% for r in runs %}<tr><td><a href="/runs/{{ r.id }}">{{ r.run_date }}</a></td><td>{{ r.kind|nl }}</td><td>{{ r.mode }}</td><td><span class="chip {{ r.status }}">{{ r.status|nl }}</span></td><td class="n">{{ r.actions|length }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

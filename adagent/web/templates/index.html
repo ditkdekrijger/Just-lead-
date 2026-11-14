@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Klanten{% endblock %}
+{% block content %}
+<div class="actions" style="justify-content:space-between">
+  <div><h1>Klanten</h1><p class="sub">Dagelijkse analyse om {{ '%02d'|format(settings.daily_hour) }}:00 · {{ settings.timezone }}</p></div>
+  <a class="btn primary" href="/clients/new">+ Nieuwe klant</a>
+</div>
+{% if not rows %}
+<div class="card"><p>Nog geen klanten. Voeg een klant toe met budget en thema's — de agent bouwt en lanceert de campagnes en optimaliseert daarna dagelijks.</p>
+<a class="btn primary" href="/clients/new">Eerste klant toevoegen</a></div>
+{% else %}
+<div class="table-wrap"><table>
+<thead><tr><th>Klant</th><th>Status</th><th class="n">Maandbudget</th><th>Besteed deze maand</th><th class="n">Kliks 7d</th><th class="n">Leads 7d</th><th class="n">Sales 7d</th><th class="n">ROAS 7d</th><th>Laatste run</th></tr></thead>
+<tbody>
+{% for r in rows %}{% set c = r.c %}
+<tr>
+  <td><a href="/clients/{{ c.id }}">{{ c.name }}</a><br><span class="muted" style="font-size:12px">{{ r.active }} actieve campagnes</span></td>
+  <td><span class="chip {{ c.status }}">{{ c.status|nl }}</span>{% if not c.autopilot %} <span class="chip">autopilot uit</span>{% endif %}</td>
+  <td class="n">{{ c.monthly_budget|euro(0) }}</td>
+  <td>{% set ratio = (r.p.spent_mtd / c.monthly_budget) if c.monthly_budget else 0 %}
+    <div class="bar"><i style="width:{{ [ratio*100,100]|min }}%"></i></div>
+    <span style="font-size:12px" class="muted">{{ r.p.spent_mtd|euro(0) }} · {{ (ratio*100)|round|int }}%</span></td>
+  <td class="n">{{ r.k7.clicks|num }}</td>
+  <td class="n">{{ r.k7.leads|num }}</td>
+  <td class="n">{{ r.k7.conversions|num }}</td>
+  <td class="n">{{ r.k7.roas|num(2) }}</td>
+  <td>{% if r.last %}<a href="/runs/{{ r.last.id }}">{{ r.last.run_date }}</a> <span class="chip {{ r.last.status }}">{{ r.last.status|nl }}</span>{% else %}–{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table></div>
+{% endif %}
+{% endblock %}
