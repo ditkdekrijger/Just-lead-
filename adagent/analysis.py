@@ -33,6 +33,11 @@ def sync_metrics(session: Session, client: Client, day: dt.date) -> list[str]:
             continue
         if camp.launched_on and day < camp.launched_on:
             continue
+        if not settings.live and session.scalar(
+            select(func.count(Metric.id)).where(Metric.campaign_id == camp.id, Metric.date == day)
+        ):
+            # Sandbox: een dag is na de eerste keer 'historie' (zoals bij echte platformen); niet opnieuw genereren
+            continue
         try:
             stats = get_connector(client, camp.platform).fetch_stats(camp, day)
         except (PlatformError, Exception) as e:  # noqa: BLE001
@@ -136,13 +141,30 @@ class Pacing:
         return {k: round(v, 2) if isinstance(v, float) else v for k, v in asdict(self).items()}
 
 
+#: Het dagdoel mag maximaal zoveel keer het gemiddelde dagbudget zijn (geen inhaalrace aan het eind van de maand)
+MAX_CATCH_UP = 1.3
+
+
+def month_budget(client: Client, today: dt.date) -> float:
+    """Budget voor de lopende maand; in de startmaand naar rato van de resterende dagen."""
+    dim = days_in_month(today)
+    launches = [c.launched_on for c in client.campaigns if c.launched_on]
+    first = min(launches) if launches else today
+    if first.year == today.year and first.month == today.month and first.day > 1:
+        return client.monthly_budget * (dim - first.day + 1) / dim
+    return client.monthly_budget
+
+
 def pacing(session: Session, client: Client, today: dt.date) -> Pacing:
     ids = [c.id for c in client.campaigns]
     spent = kpis(session, campaign_ids=ids, start=month_start(today), end=today - dt.timedelta(days=1)).spend
-    days_left = days_in_month(today) - today.day + 1
-    remaining = max(client.monthly_budget - spent, 0.0)
+    dim = days_in_month(today)
+    days_left = dim - today.day + 1
+    budget = month_budget(client, today)
+    remaining = max(budget - spent, 0.0)
+    target = min(remaining / days_left, client.monthly_budget / dim * MAX_CATCH_UP)
     current = sum(c.daily_budget for c in client.campaigns if c.status == "active")
-    return Pacing(client.monthly_budget, spent, days_left, remaining / days_left, current)
+    return Pacing(round(budget, 2), spent, days_left, target, current)
 
 
 # ---------- Momentopname voor optimizer en AI ----------

@@ -37,6 +37,10 @@ def test_full_month_stays_within_budget(session, make_client):
 
     spent = kpis(session, campaign_ids=[x.id for x in c.campaigns], start=START, end=START + dt.timedelta(days=29)).spend
     assert spent <= c.monthly_budget * 1.03
+    # Geen enkele dag ver boven het dagbudget (bewaakt ook tegen dubbeltelling bij opnieuw ophalen)
+    for i in range(30):
+        day = START + dt.timedelta(days=i)
+        assert kpis(session, campaign_ids=[x.id for x in c.campaigns], start=day, end=day).spend <= c.monthly_budget / 31 * 1.25
     assert spent >= c.monthly_budget * 0.8
     applied = session.query(Action).filter(Action.status == "applied", Action.type == "set_budget").count()
     assert applied > 0
