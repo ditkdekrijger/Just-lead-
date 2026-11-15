@@ -1,61 +1,363 @@
 {% extends "base.html" %}
-{% block title %}{{ c.name if c and c.id else 'Nieuwe klant' }}{% endblock %}
+{% set editing = c is not none and c.id %}
+{% block title %}{{ c.name if editing else 'Nieuwe klant' }}{% endblock %}
+{% block head %}
+<style>
+.intro p{color:var(--body);max-width:60ch;margin:8px 0 0}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:24px;align-items:start;margin-top:28px}
+.cf{display:flex;flex-direction:column;gap:16px;min-width:0}
+.block{background:var(--surface);border-radius:20px;padding:28px;display:flex;flex-direction:column;gap:22px;min-width:0}
+.block-head{display:flex;gap:14px;align-items:flex-start}
+.block-head .n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--black);color:#fff;display:grid;place-items:center;font-weight:600;font-size:14px}
+.block.done .block-head .n{background:var(--accent);color:var(--black)}
+.block-head h2{font-size:24px;margin:0}
+.block-head p{margin:4px 0 0;color:var(--muted);font-size:15px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:22px}.row>*{min-width:0}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld>label,.lbl{font-size:14px;font-weight:500}
+.hint{font-size:13px;color:var(--muted)}
+.inp{border:0;border-bottom:1px solid var(--field);background:transparent;padding:8px 0;font-size:18px;outline:0;border-radius:0;width:100%}
+.inp:focus{border-bottom-color:var(--black);box-shadow:0 1px 0 var(--black)}
+.inp::placeholder{color:var(--gray-400)}
+textarea.inp{resize:vertical;min-height:52px;font-size:16px;line-height:1.5;overflow:hidden}
+.err{font-size:13px;color:var(--bad)}
+.fld.bad .inp,.fld.bad .money,.fld.bad .themes{border-bottom-color:var(--bad)}
+.money{display:flex;align-items:baseline;gap:6px;border-bottom:1px solid var(--field)}
+.money:focus-within{border-bottom-color:var(--black);box-shadow:0 1px 0 var(--black)}
+.money span,.money input{font-size:clamp(30px,3.6vw,44px);font-weight:600;font-variation-settings:"wdth" 90;letter-spacing:-.03em}
+.money input{border:0;outline:0;background:transparent;width:100%;padding:4px 0;font-variant-numeric:tabular-nums}
+.money small{font-size:15px;color:var(--muted);white-space:nowrap}
+.quick{display:flex;flex-wrap:wrap;gap:6px}
+.pick{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--black);background:var(--surface);border-radius:99px;padding:6px 14px;font-size:14px;font-weight:500;cursor:pointer;transition:background .3s var(--ease)}
+.pick:hover{background:var(--bg)}
+.pick[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
+.pick.ghost{border-color:var(--line-strong)}
+.themes{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-bottom:1px solid var(--field);padding-block:8px;cursor:text}
+.themes:focus-within{border-bottom-color:var(--black);box-shadow:0 1px 0 var(--black)}
+.tchip{display:inline-flex;align-items:center;gap:4px;background:var(--black);color:#fff;border-radius:99px;padding:5px 6px 5px 14px;font-size:15px;font-weight:500}
+.tchip button{border:0;background:transparent;color:var(--on-black-70);width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:15px;line-height:1}
+.tchip button:hover{background:var(--on-black-line);color:#fff}
+.themes input{border:0;outline:0;flex:1;min-width:160px;font-size:16px;padding:6px 0;background:transparent}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.tiles.three{grid-template-columns:repeat(3,1fr)}
+.tile{text-align:left;border:1px solid var(--line-strong);background:var(--surface);border-radius:16px;padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-width:0;transition:background .3s var(--ease),border-color .3s var(--ease)}
+.tile:hover{border-color:var(--black)}
+.tile .t{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:17px;font-variation-settings:"wdth" 90}
+.tile .box{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--black);flex:none;display:grid;place-items:center;font-size:12px;color:transparent}
+.tile .d{font-size:13px;color:var(--muted);line-height:1.4}
+.tile .k{font-size:12px;font-weight:500;color:var(--body);margin-top:auto}
+.tile[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
+.tile[aria-pressed="true"] .box{background:var(--black);color:var(--accent)}
+.tile[aria-pressed="true"] .d,.tile[aria-pressed="true"] .k{color:var(--black)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.unit{display:flex;align-items:baseline;gap:4px;border-bottom:1px solid var(--field)}
+.unit:focus-within{border-bottom-color:var(--black);box-shadow:0 1px 0 var(--black)}
+.unit span{color:var(--muted)}
+.unit input{border:0;outline:0;background:transparent;font-size:18px;padding:8px 0;width:100%;font-variant-numeric:tabular-nums}
+details.acc{border-top:1px solid var(--line);padding-top:18px}
+details.acc summary{font-weight:500;color:var(--text);list-style:none;display:flex;gap:12px}
+details.acc summary::-webkit-details-marker{display:none}
+details.acc summary::after{content:"+";font-size:20px;line-height:1;margin-left:auto}
+details.acc[open] summary::after{content:"–"}
+.acc-body{display:grid;grid-template-columns:1fr 1fr;gap:18px 22px;margin-top:18px}
+.acc-body .grp{grid-column:1/-1;font-size:13px;font-weight:600;color:var(--muted);margin-top:6px}
+.acc-body .grp[hidden],.acc-body .fld[hidden]{display:none}
+.switch{display:flex;gap:16px;align-items:flex-start;cursor:pointer}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.track{flex:none;width:52px;height:30px;border-radius:99px;background:var(--gray-200);position:relative;transition:background .4s var(--ease)}
+.track::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;border:1px solid var(--line-strong);transition:transform .4s var(--ease)}
+.switch input:checked+.track{background:var(--accent)}
+.switch input:checked+.track::after{transform:translateX(22px);border-color:var(--black)}
+.switch input:focus-visible+.track{outline:2px solid var(--black);outline-offset:3px}
+.switch b{display:block;font-weight:600}.switch .s{font-size:14px;color:var(--muted)}
+aside.pv{position:sticky;top:76px;min-width:0}
+.prev{background:var(--black);color:#fff;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:20px}
+.kick{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--on-black-70)}
+.kick::before{content:"";width:11px;height:13px;border:1.5px solid currentColor;border-bottom:0;border-radius:999px 999px 0 0}
+.big{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.big div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.big b{font-variation-settings:"wdth" 90;font-weight:600;font-size:34px;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.big span{font-size:12px;color:var(--on-black-70)}
+.split{display:flex;height:10px;border-radius:99px;overflow:hidden;gap:2px;background:var(--ink)}
+.split i{display:block;height:100%}
+.lgd{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--on-black-70);margin-top:8px}
+.lgd span{display:inline-flex;gap:6px;align-items:center}.lgd i{width:10px;height:10px;border-radius:3px}
+.camps{display:flex;flex-direction:column;gap:14px;max-height:360px;overflow:auto;padding-right:4px}
+.og h4{margin:0 0 6px;font-size:13px;font-weight:600;display:flex;justify-content:space-between}
+.og h4 span{color:var(--on-black-70);font-weight:500;font-variant-numeric:tabular-nums}
+.cr{display:grid;grid-template-columns:minmax(0,1fr) 56px 64px;gap:10px;align-items:center;padding-block:5px;border-top:1px solid var(--on-black-line);font-size:13px}
+.cr .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cr .nm em{font-style:normal;color:var(--on-black-70)}
+.cr .mb{height:6px;border-radius:99px;background:var(--ink);overflow:hidden}.cr .mb i{display:block;height:100%;background:#fff}
+.cr .eur{text-align:right;font-variant-numeric:tabular-nums}
+.notes{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.notes li{background:var(--ink);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.45;color:var(--on-black-70);display:flex;gap:10px}
+.notes li b{color:#fff;font-weight:600}
+.notes .ic{flex:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;margin-top:1px}
+.notes .warn .ic{background:var(--accent);color:var(--black)}
+.notes .info .ic{border:1px solid var(--on-black-55)}
+.empty{font-size:14px;color:var(--on-black-70);border:1px dashed var(--on-black-line);border-radius:12px;padding:18px;text-align:center}
+.go{display:flex;flex-direction:column;gap:8px}
+.go .btn{padding:14px 22px;font-size:16px}
+.go .why{font-size:13px;color:var(--on-black-70);text-align:center;min-height:1.4em}
+.edit-note{font-size:13px;color:var(--on-black-70)}
+.sheet{position:fixed;inset:0;background:#0a0a0b99;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet[hidden]{display:none}
+.sheet-in{background:#fff;width:min(720px,100%);max-height:calc(100% - 40px);overflow:auto;border-radius:32px 32px 0 0;padding:32px max(20px,env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:20px}
+.sheet-in h2{font-size:clamp(28px,3.4vw,40px);margin:0}
+.sum{display:grid;grid-template-columns:auto 1fr;gap:8px 20px;font-size:15px;margin:0}
+.sum dt{color:var(--muted)}.sum dd{margin:0;font-weight:500}
+.callout{background:#fff1ea;border-radius:12px;padding:12px 14px;font-size:14px;color:var(--body)}
+.sheet-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+@media (max-width:1060px){.layout{grid-template-columns:1fr}aside.pv{position:static}.camps{max-height:none}}
+@media (max-width:720px){.row,.acc-body{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,1fr)}.tiles.three{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.block{padding:20px}}
+</style>
+{% endblock %}
 {% block content %}
-{% set editing = c and c.id %}
-<h1>{{ 'Klant bewerken' if editing else 'Nieuwe klant' }}</h1>
-<p class="sub">{% if editing %}Wijzigingen in budget gaan direct mee in de pacing; nieuwe thema's worden bij de volgende run gelanceerd, verwijderde thema's gepauzeerd.{% else %}Vul budget en thema's in — de rest doet de agent: strategie, campagnes, teksten, lancering en dagelijkse optimalisatie.{% endif %}</p>
-{% if errors %}<div class="errors">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
-<form method="post" action="{{ '/clients/%d/edit'|format(c.id) if editing else '/clients' }}" class="card">
-  <div class="cols">
-    <div><label>Naam klant</label><input type="text" name="name" required value="{{ c.name if c else '' }}"></div>
-    <div><label>Website <span class="hint">(landingspagina)</span></label><input type="url" name="website" required placeholder="https://" value="{{ c.website if c else '' }}"></div>
-  </div>
-  <div class="cols">
-    <div><label>Maandbudget (€)</label><input type="number" step="1" min="1" name="monthly_budget" required value="{{ (c.monthly_budget|int) if c and c.monthly_budget else '' }}"></div>
-    <div><label>Regio <span class="hint">(landcodes, bv. NL, BE)</span></label><input type="text" name="locations" value="{{ (c.locations|join(', ')) if c else 'NL' }}"></div>
-    <div><label>Taal</label><select name="language">{% for code, l in [('nl','Nederlands'),('en','Engels'),('de','Duits'),('fr','Frans')] %}<option value="{{ code }}" {{ 'selected' if c and c.language==code }}>{{ l }}</option>{% endfor %}</select></div>
-  </div>
-  <label>Thema's <span class="hint">(één per regel — bv. producten, diensten of campagnes)</span></label>
-  <textarea name="themes" required>{{ (c.themes|join('\n')) if c else '' }}</textarea>
+{% set objs = (c.objectives if c is not none else OBJECTIVES) or [] %}
+{% set pfs = (c.platforms if c is not none else PLATFORMS) or [] %}
+<div class="intro">
+  {% if editing %}<p style="margin:0 0 8px"><a href="/clients/{{ c.id }}">← {{ c.name }}</a></p>{% endif %}
+  <h1>{{ 'Klant bewerken' if editing else 'Nieuwe klant' }}</h1>
+  <p>{% if editing %}Budget gaat direct mee in de pacing. Nieuwe thema's worden bij de volgende run gelanceerd, verwijderde thema's gepauzeerd.{% else %}Vul budget en thema's in. De agent maakt de strategie, campagnes en teksten, zet ze live en stuurt elke ochtend bij. De voorvertoning laat meteen zien wat hij gaat bouwen.{% endif %}</p>
+</div>
+{% if errors %}<div class="errors" style="margin-top:20px">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
 
-  <label>Doelen</label>
-  <div class="checks">{% for o in OBJECTIVES %}<label><input type="checkbox" name="obj_{{ o }}" value="1" {{ 'checked' if (not c) or (o in (c.objectives or [])) }}> {{ OBJECTIVE_LABELS[o] }}</label>{% endfor %}</div>
-  <label>Platformen</label>
-  <div class="checks">{% for p in PLATFORMS %}<label><input type="checkbox" name="pf_{{ p }}" value="1" {{ 'checked' if (not c) or (p in (c.platforms or [])) }}> {{ PLATFORM_LABELS[p] }}</label>{% endfor %}</div>
+<div class="layout">
+<form class="cf" id="cf" method="post" action="{{ '/clients/%d/edit'|format(c.id) if editing else '/clients' }}" novalidate>
+  <input type="hidden" name="themes" id="themes-val" value="{{ (c.themes|join('\n')) if c is not none else '' }}">
+  <input type="hidden" name="locations" id="loc-val" value="{{ (c.locations|join(',')) if c is not none else 'NL' }}">
+  <input type="hidden" name="monthly_budget" id="budget-val" value="{{ (c.monthly_budget|int) if c is not none and c.monthly_budget else '' }}">
+  {% for o in OBJECTIVES %}<input type="checkbox" hidden name="obj_{{ o }}" id="obj_{{ o }}" value="1" {{ 'checked' if o in objs }}>{% endfor %}
+  {% for p in PLATFORMS %}<input type="checkbox" hidden name="pf_{{ p }}" id="pf_{{ p }}" value="1" {{ 'checked' if p in pfs }}>{% endfor %}
+  {% if not editing %}<input type="hidden" name="launch_now" value="1">{% endif %}
 
-  <details style="margin-top:18px" {{ 'open' if editing }}><summary>Context voor de AI (aanbevolen)</summary>
-    <label>Omschrijving bedrijf / aanbod</label><textarea name="description">{{ c.description if c else '' }}</textarea>
-    <label>Doelgroep</label><textarea name="audience">{{ c.audience if c else '' }}</textarea>
-  </details>
-
-  <details style="margin-top:12px" {{ 'open' if editing }}><summary>KPI-doelen (optioneel — anders bepaalt de agent de benchmark)</summary>
-    <div class="cols">
-      <div><label>Doel-CPM bereik (€)</label><input type="text" name="target_cpm" value="{{ c.target_cpm if c and c.target_cpm else '' }}"></div>
-      <div><label>Doel-CPC kliks (€)</label><input type="text" name="target_cpc" value="{{ c.target_cpc if c and c.target_cpc else '' }}"></div>
-      <div><label>Doel-CPL leads (€)</label><input type="text" name="target_cpl" value="{{ c.target_cpl if c and c.target_cpl else '' }}"></div>
-      <div><label>Doel-ROAS sales</label><input type="text" name="target_roas" value="{{ c.target_roas if c and c.target_roas else '' }}"></div>
+  <section class="block" id="b1">
+    <div class="block-head"><span class="n">1</span><div><h2>Klant</h2><p>Wie adverteert er, en waar komen de kliks terecht?</p></div></div>
+    <div class="row">
+      <div class="fld" id="fld-name"><label for="name">Naam klant</label><input class="inp" id="name" name="name" autocomplete="off" placeholder="Bijv. Bakkerij Jansen" value="{{ c.name if c is not none else '' }}"><span class="err"></span></div>
+      <div class="fld" id="fld-website"><label for="website">Website</label><input class="inp" id="website" name="website" type="url" inputmode="url" placeholder="https://" value="{{ c.website if c is not none else '' }}"><span class="err"></span></div>
     </div>
-  </details>
-
-  <details style="margin-top:12px" {{ 'open' if settings.live }}><summary>Advertentieaccounts {{ '(verplicht in live-modus)' if settings.live else '(nodig voor live-modus)' }}</summary>
-    <div class="cols">
-      <div><label>Meta ad account ID</label><input type="text" name="meta_ad_account_id" placeholder="act_123…" value="{{ c.meta_ad_account_id if c else '' }}"></div>
-      <div><label>Meta pagina-ID</label><input type="text" name="meta_page_id" value="{{ c.meta_page_id if c else '' }}"></div>
-      <div><label>Meta pixel-ID</label><input type="text" name="meta_pixel_id" value="{{ c.meta_pixel_id if c else '' }}"></div>
-      <div><label>Google Ads customer ID</label><input type="text" name="google_customer_id" placeholder="123-456-7890" value="{{ c.google_customer_id if c else '' }}"></div>
-      <div><label>LinkedIn ad account ID</label><input type="text" name="linkedin_ad_account_id" value="{{ c.linkedin_ad_account_id if c else '' }}"></div>
-      <div><label>LinkedIn organisatie-ID</label><input type="text" name="linkedin_org_id" value="{{ c.linkedin_org_id if c else '' }}"></div>
-      <div><label>LinkedIn lead form ID</label><input type="text" name="linkedin_lead_form_id" value="{{ c.linkedin_lead_form_id if c else '' }}"></div>
+    <div class="fld"><label for="description">Wat verkoopt de klant?</label><textarea class="inp" id="description" name="description" rows="2" placeholder="Eén of twee zinnen. Claude gebruikt dit voor strategie en teksten.">{{ c.description if c is not none else '' }}</textarea></div>
+    <div class="fld"><label for="audience">Doelgroep</label><textarea class="inp" id="audience" name="audience" rows="2" placeholder="Bijv. huiseigenaren 35-65 die willen verduurzamen">{{ c.audience if c is not none else '' }}</textarea><span class="hint">Woorden als zakelijk, MKB, B2B of managers geven LinkedIn automatisch meer gewicht.</span></div>
+    <div class="row">
+      <div class="fld"><span class="lbl">Regio</span><div class="quick" id="regions"></div></div>
+      <div class="fld"><label for="language">Taal van de advertenties</label>
+        <select class="inp" id="language" name="language">{% for code, l in [('nl','Nederlands'),('en','Engels'),('de','Duits'),('fr','Frans')] %}<option value="{{ code }}" {{ 'selected' if c is not none and c.language==code }}>{{ l }}</option>{% endfor %}</select></div>
     </div>
-  </details>
+  </section>
 
-  <div class="checks" style="margin-top:18px">
-    <label><input type="checkbox" name="autopilot" value="1" {{ 'checked' if (not c) or c.autopilot }}> Autopilot — agent voert optimalisaties zelf uit (uit = alleen voorstellen, campagnes starten gepauzeerd)</label>
-    {% if not editing %}<label><input type="checkbox" name="launch_now" value="1" checked> Direct plan maken en lanceren</label>{% endif %}
-  </div>
-  <div class="actions" style="margin-top:18px">
-    <button class="btn primary" type="submit">{{ 'Opslaan' if editing else 'Klant aanmaken' }}</button>
-    <a class="btn" href="{{ '/clients/%d'|format(c.id) if editing else '/' }}">Annuleren</a>
-  </div>
+  <section class="block" id="b2">
+    <div class="block-head"><span class="n">2</span><div><h2>Budget en thema's</h2><p>Het enige dat de agent echt nodig heeft.</p></div></div>
+    <div class="fld" id="fld-budget">
+      <label for="budget">Maandbudget voor media</label>
+      <div class="money"><span>€</span><input id="budget" inputmode="numeric" placeholder="0" autocomplete="off"><small id="perday">per maand</small></div>
+      <div class="quick" style="margin-top:8px">{% for b in [1000,3000,5000,10000] %}<button type="button" class="pick ghost" data-b="{{ b }}">€{{ '{:,}'.format(b).replace(',', '.') }}</button>{% endfor %}</div>
+      <span class="err"></span>
+    </div>
+    <div class="fld" id="fld-themes">
+      <label for="theme-in">Thema's</label>
+      <div class="themes" id="themes"><input id="theme-in" autocomplete="off" placeholder="Typ een thema en druk op Enter"></div>
+      <span class="hint">Producten, diensten of acties. Elk thema krijgt eigen campagnes als het budget het toelaat.</span>
+      <span class="err"></span>
+    </div>
+  </section>
+
+  <section class="block" id="b3">
+    <div class="block-head"><span class="n">3</span><div><h2>Doelen en platformen</h2><p>Waar stuurt de agent op, en waar mag hij adverteren?</p></div></div>
+    <div class="fld" id="fld-obj"><span class="lbl">Doelen</span>
+      <div class="tiles" id="objs">
+        {% for o, d, k in [('reach','Zoveel mogelijk mensen uit de doelgroep zien je.','Stuurt op CPM'),('clicks','Bezoekers naar de website.','Stuurt op CPC'),('leads','Aanvragen, offertes en inschrijvingen.','Stuurt op kosten per lead'),('sales','Aankopen met omzet.','Stuurt op ROAS')] %}
+        <button type="button" class="tile" data-o="{{ o }}" aria-pressed="false"><span class="t">{{ OBJECTIVE_LABELS[o] }}<span class="box">✓</span></span><span class="d">{{ d }}</span><span class="k">{{ k }}</span></button>
+        {% endfor %}
+      </div><span class="err"></span></div>
+    <div class="fld" id="fld-pf"><span class="lbl">Platformen</span>
+      <div class="tiles three" id="pfs">
+        {% for p, d in [('meta','Facebook en Instagram. Sterk in bereik en consumenten.'),('google','Zoekcampagnes op bestaande vraag.'),('linkedin','Zakelijke doelgroepen. Minimaal €10 per dag per campagne.')] %}
+        <button type="button" class="tile" data-p="{{ p }}" aria-pressed="false"><span class="t">{{ PLATFORM_LABELS[p] }}<span class="box">✓</span></span><span class="d">{{ d }}</span></button>
+        {% endfor %}
+      </div><span class="err"></span></div>
+  </section>
+
+  <section class="block" id="b4">
+    <div class="block-head"><span class="n">4</span><div><h2>Doelen en autopilot</h2><p>Optioneel. Zonder KPI-doel vergelijkt de agent campagnes met elkaar.</p></div></div>
+    <div class="kpis" id="kpis">
+      <div class="fld" data-o="reach"><label for="target_cpm">Max. CPM bereik</label><div class="unit"><span>€</span><input id="target_cpm" name="target_cpm" inputmode="decimal" placeholder="vrij" value="{{ c.target_cpm if c is not none and c.target_cpm else '' }}"></div></div>
+      <div class="fld" data-o="clicks"><label for="target_cpc">Max. CPC kliks</label><div class="unit"><span>€</span><input id="target_cpc" name="target_cpc" inputmode="decimal" placeholder="vrij" value="{{ c.target_cpc if c is not none and c.target_cpc else '' }}"></div></div>
+      <div class="fld" data-o="leads"><label for="target_cpl">Max. kosten per lead</label><div class="unit"><span>€</span><input id="target_cpl" name="target_cpl" inputmode="decimal" placeholder="vrij" value="{{ c.target_cpl if c is not none and c.target_cpl else '' }}"></div></div>
+      <div class="fld" data-o="sales"><label for="target_roas">Min. ROAS sales</label><div class="unit"><input id="target_roas" name="target_roas" inputmode="decimal" placeholder="vrij" value="{{ c.target_roas if c is not none and c.target_roas else '' }}"><span>×</span></div></div>
+    </div>
+    <label class="switch"><input type="checkbox" id="autopilot" name="autopilot" value="1" {{ 'checked' if c is none or c.autopilot }}><span class="track"></span><span><b id="ap-t">Autopilot aan</b><span class="s" id="ap-s"></span></span></label>
+    <details class="acc" {{ 'open' if settings.live }}>
+      <summary>Advertentieaccounts <span class="muted" style="font-weight:400">{{ 'verplicht in live-modus' if settings.live else 'nodig voor live' }}</span></summary>
+      <div class="acc-body">
+        {% for p, fields in [('meta',[('meta_ad_account_id','Ad account ID','act_123…'),('meta_page_id','Pagina-ID',''),('meta_pixel_id','Pixel-ID','nodig voor leads en sales')]),('google',[('google_customer_id','Customer ID','123-456-7890')]),('linkedin',[('linkedin_ad_account_id','Ad account ID',''),('linkedin_org_id','Organisatie-ID',''),('linkedin_lead_form_id','Lead form ID','voor leadcampagnes')])] %}
+        <span class="grp" data-acc="{{ p }}">{{ PLATFORM_LABELS[p] }}</span>
+        {% for id, l, ph in fields %}<div class="fld" data-acc="{{ p }}"><label for="{{ id }}">{{ l }}</label><input class="inp" id="{{ id }}" name="{{ id }}" placeholder="{{ ph }}" value="{{ c[id] if c is not none else '' }}"></div>{% endfor %}
+        {% endfor %}
+      </div>
+    </details>
+  </section>
 </form>
+
+<aside class="pv">
+  <div class="prev" aria-live="polite">
+    <span class="kick">{{ 'Verdeling bij deze instellingen' if editing else 'Wat de agent gaat bouwen' }}</span>
+    <div class="big">
+      <div><b id="p-day">€0</b><span>per dag</span></div>
+      <div><b id="p-camps">0</b><span>campagnes</span></div>
+      <div><b id="p-ads">0</b><span>advertenties</span></div>
+    </div>
+    <div><div class="split" id="p-split"></div><div class="lgd" id="p-legend"></div></div>
+    <div class="camps" id="p-list"></div>
+    <ul class="notes" id="p-notes"></ul>
+    {% if editing %}<p class="edit-note">Bestaande campagnes blijven staan; de agent verschuift budget geleidelijk binnen de vaste grenzen.</p>{% endif %}
+    <div class="go">
+      <button type="button" class="btn accent" id="submit-btn" disabled>{{ 'Opslaan' if editing else 'Plan maken en lanceren' }}</button>
+      {% if editing %}<a class="btn" href="/clients/{{ c.id }}" style="background:transparent;color:#fff;border-color:var(--on-black-55)">Annuleren</a>{% endif %}
+      <span class="why" id="why"></span>
+    </div>
+  </div>
+</aside>
+</div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-h"><div class="sheet-in" id="sheet-in"></div></div>
+
+<script>
+(function(){
+  const EDITING={{ 'true' if editing else 'false' }}, LIVE={{ 'true' if settings.live else 'false' }};
+  const OBJ={{ OBJECTIVE_LABELS|tojson }}, PFN={{ PLATFORM_LABELS|tojson }};
+  const OORDER=["reach","clicks","leads","sales"];
+  const OCOL={reach:"#ffffff",clicks:"#a3a3a3",leads:"#ff5a1f",sales:"#6b6b6b"};
+  const $=id=>document.getElementById(id);
+  const eur=(v,d=0)=>"€"+v.toLocaleString("nl-NL",{minimumFractionDigits:d,maximumFractionDigits:d});
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const now=new Date(),dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const touched=new Set(EDITING||{{ 'true' if errors else 'false' }}?["name","website","budget","themes","obj","pf"]:[]);
+
+  let themes=$("themes-val").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  const regions=new Set($("loc-val").value.split(",").map(s=>s.trim().toUpperCase()).filter(Boolean));
+  const REG=[...new Set(["NL","BE","DE",...regions])];
+  const bv=$("budget-val").value; $("budget").value=bv?(+bv).toLocaleString("nl-NL"):"";
+
+  const budget=()=>parseInt(($("budget").value||"").replace(/\D/g,""),10)||0;
+  const objs=()=>OORDER.filter(o=>$("obj_"+o).checked);
+  const pfs=()=>["meta","google","linkedin"].filter(p=>$("pf_"+p).checked);
+
+  function renderRegions(){$("regions").innerHTML=REG.map(r=>`<button type="button" class="pick" data-r="${r}" aria-pressed="${regions.has(r)}">${r}</button>`).join("");$("loc-val").value=[...regions].join(",")}
+  function renderThemes(){
+    const box=$("themes"),inp=$("theme-in");box.querySelectorAll(".tchip").forEach(n=>n.remove());
+    themes.forEach((t,i)=>{const c=document.createElement("span");c.className="tchip";c.innerHTML=`${esc(t)}<button type="button" aria-label="Verwijder ${esc(t)}">×</button>`;c.querySelector("button").onclick=()=>{themes.splice(i,1);renderThemes();update()};box.insertBefore(c,inp)});
+    inp.placeholder=themes.length?"Nog een thema…":"Typ een thema en druk op Enter";
+    $("themes-val").value=themes.join("\n");
+  }
+  function sync(){
+    document.querySelectorAll("[data-o].tile").forEach(b=>b.setAttribute("aria-pressed",$("obj_"+b.dataset.o).checked));
+    document.querySelectorAll("[data-p].tile").forEach(b=>b.setAttribute("aria-pressed",$("pf_"+b.dataset.p).checked));
+    document.querySelectorAll("#kpis .fld").forEach(f=>f.hidden=!$("obj_"+f.dataset.o).checked);
+    document.querySelectorAll("[data-acc]").forEach(f=>f.hidden=!$("pf_"+f.dataset.acc).checked);
+    $("budget-val").value=budget()||"";
+  }
+  function errors(){
+    const e={};
+    if(!$("name").value.trim())e.name="Vul de naam van de klant in.";
+    if(!/^https?:\/\/[^\s.]+\.[^\s]+$/.test($("website").value.trim()))e.website="Begin met https:// en vul een volledig adres in.";
+    if(budget()<=0)e.budget="Vul een maandbudget in.";
+    if(!themes.length)e.themes="Voeg minimaal één thema toe.";
+    if(!objs().length)e.obj="Kies minimaal één doel.";
+    if(!pfs().length)e.pf="Kies minimaal één platform.";
+    return e;
+  }
+  const FMAP={name:"fld-name",website:"fld-website",budget:"fld-budget",themes:"fld-themes",obj:"fld-obj",pf:"fld-pf"};
+
+  /* Voorvertoning: rekent op de server met de echte planner */
+  let P={daily_total:0,campaigns:[],notes:[]},seq=0,timer;
+  function requestPreview(){
+    clearTimeout(timer);
+    timer=setTimeout(async()=>{
+      const my=++seq;
+      try{
+        const r=await fetch("/api/plan-preview",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
+          body:JSON.stringify({monthly_budget:budget(),themes,objectives:objs(),platforms:pfs(),description:$("description").value,audience:$("audience").value,meta_pixel_id:$("meta_pixel_id").value})});
+        if(!r.ok)throw new Error(r.status);
+        const d=await r.json(); if(my===seq){P=d;renderPreview()}
+      }catch(_){if(my===seq){$("p-notes").innerHTML=`<li class="warn"><span class="ic">!</span><span><b>Voorvertoning niet beschikbaar.</b> Je kunt gewoon doorgaan; het plan wordt bij het lanceren gemaakt.</span></li>`}}
+    },200);
+  }
+  function renderPreview(){
+    const C=P.campaigns,tot=C.reduce((a,c)=>a+c.daily_budget,0);
+    $("p-day").textContent=eur(tot);$("p-camps").textContent=C.length;$("p-ads").textContent=C.reduce((a,c)=>a+c.ads,0);
+    const by={};C.forEach(c=>by[c.objective]=(by[c.objective]||0)+c.daily_budget);
+    const os=OORDER.filter(o=>by[o]);
+    $("p-split").innerHTML=os.map(o=>`<i style="width:${by[o]/tot*100}%;background:${OCOL[o]}"></i>`).join("");
+    $("p-legend").innerHTML=os.map(o=>`<span><i style="background:${OCOL[o]}"></i>${OBJ[o]} ${Math.round(by[o]/tot*100)}%</span>`).join("");
+    const max=Math.max(...C.map(c=>c.daily_budget),1);
+    $("p-list").innerHTML=C.length?os.map(o=>`<div class="og"><h4>${OBJ[o]}<span>${eur(by[o],2)}/dag</span></h4>`+C.filter(c=>c.objective===o).map(c=>`<div class="cr"><span class="nm">${PFN[c.platform]} <em>· ${esc(c.theme)}</em></span><span class="mb"><i style="width:${c.daily_budget/max*100}%"></i></span><span class="eur">${eur(c.daily_budget,2)}</span></div>`).join("")+`</div>`).join(""):`<div class="empty">Vul budget in en kies doelen en platformen. Hier verschijnen de campagnes met hun dagbudget.</div>`;
+    $("p-notes").innerHTML=P.notes.map(n=>`<li class="${n.level}"><span class="ic">${n.level==="warn"?"!":"i"}</span><span><b>${esc(n.title)}</b> ${esc(n.text)}</span></li>`).join("");
+  }
+
+  function update(){
+    sync();
+    const b=budget();$("perday").textContent=b?`≈ ${eur(b/dim)} per dag`:"per maand";
+    const e=errors();
+    for(const k in FMAP){const f=$(FMAP[k]),show=touched.has(k)&&e[k];f.classList.toggle("bad",!!show);f.querySelector(".err").textContent=show?e[k]:""}
+    $("b1").classList.toggle("done",!e.name&&!e.website);$("b2").classList.toggle("done",!e.budget&&!e.themes);
+    $("b3").classList.toggle("done",!e.obj&&!e.pf);$("b4").classList.toggle("done",!Object.keys(e).length);
+    const n=Object.keys(e).length,ap=$("autopilot").checked;
+    $("submit-btn").disabled=!!n;
+    $("why").textContent=n?`Nog ${n} ${n===1?"ding":"dingen"} invullen: ${Object.values(e)[0].replace(/\.$/,"").toLowerCase()}.`:(EDITING?"":(ap?"Gaat direct live. Eerste analyse morgen om {{ '%02d'|format(settings.daily_hour) }}:00.":"Campagnes worden gepauzeerd aangemaakt."));
+    $("ap-t").textContent=ap?"Autopilot aan":"Autopilot uit";
+    $("ap-s").textContent=ap?"De agent voert elke ochtend zelf de aanpassingen uit, binnen de vaste grenzen."+(EDITING?"":" Campagnes gaan direct live."):"De agent doet elke ochtend voorstellen, jij beslist."+(EDITING?"":" Campagnes worden gepauzeerd aangemaakt.");
+    if(!EDITING)$("submit-btn").textContent=ap?"Plan maken en lanceren":"Plan maken (gepauzeerd)";
+    requestPreview();
+  }
+
+  /* events */
+  ["name","website","description","audience","meta_pixel_id"].forEach(id=>$(id).addEventListener("input",update));
+  ["name","website"].forEach(id=>$(id).addEventListener("blur",()=>{touched.add(id);update()}));
+  $("budget").addEventListener("input",e=>{const raw=e.target.value.replace(/\D/g,"");e.target.value=raw?(+raw).toLocaleString("nl-NL"):"";update()});
+  $("budget").addEventListener("blur",()=>{touched.add("budget");update()});
+  document.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{$("budget").value=(+b.dataset.b).toLocaleString("nl-NL");touched.add("budget");update()});
+  function addTheme(v){v=v.trim().replace(/,$/,"");if(v&&!themes.some(t=>t.toLowerCase()===v.toLowerCase()))themes.push(v);renderThemes()}
+  $("theme-in").addEventListener("keydown",e=>{
+    if((e.key==="Enter"||e.key===",")){e.preventDefault();if(e.target.value.trim()){addTheme(e.target.value);e.target.value="";touched.add("themes");update()}}
+    else if(e.key==="Backspace"&&!e.target.value&&themes.length){themes.pop();renderThemes();update()}
+  });
+  $("theme-in").addEventListener("blur",e=>{if(e.target.value.trim()){addTheme(e.target.value);e.target.value=""}touched.add("themes");update()});
+  $("themes").addEventListener("click",e=>{if(e.target===$("themes"))$("theme-in").focus()});
+  $("objs").addEventListener("click",e=>{const b=e.target.closest("[data-o]");if(!b)return;const cb=$("obj_"+b.dataset.o);cb.checked=!cb.checked;touched.add("obj");update()});
+  $("pfs").addEventListener("click",e=>{const b=e.target.closest("[data-p]");if(!b)return;const cb=$("pf_"+b.dataset.p);cb.checked=!cb.checked;touched.add("pf");update()});
+  $("regions").addEventListener("click",e=>{const b=e.target.closest("[data-r]");if(!b)return;const r=b.dataset.r;if(regions.has(r)&&regions.size>1)regions.delete(r);else regions.add(r);renderRegions()});
+  $("autopilot").addEventListener("change",update);
+  ["description","audience"].forEach(id=>{const t=$(id),g=()=>{t.style.height="auto";t.style.height=t.scrollHeight+2+"px"};t.addEventListener("input",g);requestAnimationFrame(g)});
+  $("cf").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.tagName==="INPUT")e.preventDefault()});
+
+  /* bevestigen en versturen */
+  const sheet=$("sheet"),sin=$("sheet-in");
+  const close=()=>{sheet.hidden=true;$("submit-btn").focus()};
+  sheet.addEventListener("click",e=>{if(e.target===sheet)close()});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!sheet.hidden)close()});
+  $("submit-btn").onclick=()=>{
+    if($("theme-in").value.trim()){addTheme($("theme-in").value);$("theme-in").value=""}
+    sync();
+    if(EDITING){$("cf").submit();return}
+    const ap=$("autopilot").checked,tot=P.campaigns.reduce((a,c)=>a+c.daily_budget,0);
+    const used=[...new Set(P.campaigns.map(c=>PFN[c.platform]))];
+    sin.innerHTML=`<h2 id="sheet-h">Klopt dit?</h2>
+      <dl class="sum">
+        <dt>Klant</dt><dd>${esc($("name").value.trim())}</dd>
+        <dt>Budget</dt><dd>${eur(budget())} per maand${tot?` · ${eur(tot,2)} per dag om te starten`:""}</dd>
+        <dt>Thema's</dt><dd>${themes.map(esc).join(", ")}</dd>
+        ${P.campaigns.length?`<dt>Bouwt</dt><dd>${P.campaigns.length} campagnes op ${used.join(", ")}</dd>`:""}
+        <dt>Status</dt><dd>${ap?"Direct live, autopilot aan":"Gepauzeerd, autopilot uit"}</dd>
+      </dl>
+      ${ap&&LIVE?`<div class="callout">Na lanceren geeft de agent echt geld uit, tot maximaal het maandbudget. Twijfel je over de accounts, zet dan eerst autopilot uit.</div>`:""}
+      ${!LIVE?`<div class="callout">Sandbox-modus: er worden geen echte campagnes aangemaakt.</div>`:""}
+      <div class="sheet-actions"><button type="button" class="btn" id="s-back">Terug</button><button type="button" class="btn primary" id="s-go">${ap?"Ja, lanceren":"Ja, aanmaken"}</button></div>`;
+    sheet.hidden=false;$("s-go").focus();
+    $("s-back").onclick=close;
+    $("s-go").onclick=()=>{$("s-go").disabled=true;$("s-go").textContent="Bezig met opzetten…";$("cf").submit()};
+  };
+
+  renderRegions();renderThemes();update();
+})();
+</script>
 {% endblock %}

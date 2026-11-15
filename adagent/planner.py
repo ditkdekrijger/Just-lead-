@@ -161,6 +161,45 @@ def allocate(client: Client, daily_total: float, shares: dict[str, float],
     return specs
 
 
+# ---------- Voorvertoning (voor het invoerscherm) ----------
+def preview_plan(client: Client, daily_total: float) -> dict:
+    """Wat de agent zou bouwen met deze instellingen (zonder AI, zonder iets aan te maken)."""
+    shares, fit = default_weights(client)
+    specs = allocate(client, daily_total, shares, fit)
+    themes = [t for t in client.themes if t.strip()]
+    camps = [{
+        "platform": s.platform, "objective": s.objective, "theme": s.theme,
+        "daily_budget": round(s.daily_budget, 2),
+        "ads": len(s.themes) * (2 if len(s.themes) <= 2 else 1),
+    } for s in specs]
+    notes: list[dict] = []
+    used_p = {s.platform for s in specs}
+    used_o = {s.objective for s in specs}
+    for p in client.platforms:
+        if p in PLATFORMS and p not in used_p and specs:
+            notes.append({"level": "warn", "title": f"{PLATFORM_LABELS[p]} valt af.",
+                          "text": f"Bij €{daily_total:.0f} per dag blijft er te weinig over voor minimaal "
+                                  f"€{MIN_USEFUL_BUDGET[p]:.0f} per campagne. Verhoog het budget of kies minder doelen."})
+    lost = [OBJECTIVE_LABELS[o] for o in client.objectives if o in OBJECTIVES and o not in used_o and specs]
+    if lost:
+        notes.append({"level": "warn", "title": f"{' en '.join(lost)} {'vallen' if len(lost) > 1 else 'valt'} af.",
+                      "text": "Het budget is te klein om alle doelen goed te testen; de agent kiest voor de doelen "
+                              "die het dichtst bij omzet zitten."})
+    if len(themes) > 1 and any(len(s.themes) > 1 for s in specs):
+        notes.append({"level": "info", "title": "Thema's samengevoegd",
+                      "text": "in één campagne waar het budget per thema te klein is. Elk thema krijgt wel eigen advertenties."})
+    if _is_b2b(client) and "linkedin" in used_p:
+        notes.append({"level": "info", "title": "Zakelijke doelgroep herkend.",
+                      "text": "LinkedIn krijgt ruim twee keer zoveel gewicht."})
+    if "meta" in used_p and used_o & {"leads", "sales"} and not client.meta_pixel_id:
+        notes.append({"level": "info", "title": "Meta-pixel nog leeg.",
+                      "text": "Zonder pixel optimaliseren leads- en salescampagnes op kliks in plaats van conversies."})
+    if specs and settings.ai_enabled:
+        notes.append({"level": "info", "title": "Met Claude",
+                      "text": "worden doelverdeling en teksten bij het lanceren per klant bepaald. Dit is de standaardverdeling."})
+    return {"daily_total": round(daily_total, 2), "campaigns": camps, "notes": notes}
+
+
 # ---------- Lancering ----------
 def launch_plan(session: Session, client: Client, today: dt.date, run_id: int | None = None,
                 themes: list[str] | None = None) -> list[Campaign]:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import os
+import re
 import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -25,6 +26,8 @@ from ..db import get_sessionmaker, init_engine
 from ..executor import set_client_paused
 from ..fmt import action_nl, euro, num, pct, status_nl
 from ..models import OBJECTIVE_LABELS, OBJECTIVES, PLATFORM_LABELS, PLATFORMS, Action, AgentRun, Client
+from ..clock import days_in_month
+from ..planner import preview_plan
 from ..runner import run_client
 
 log = logging.getLogger(__name__)
@@ -88,8 +91,17 @@ def _lines(v: str) -> list[str]:
 
 
 def _num(v: str) -> float | None:
-    v = (v or "").strip().replace("€", "").replace(",", ".")
-    return float(v) if v else None
+    """Leest ook Nederlandse notatie: 3.000 · 3.000,50 · 35,5 · 35.5"""
+    v = (v or "").strip().replace("€", "").replace(" ", "").replace("\u00a0", "")
+    if not v:
+        return None
+    if re.fullmatch(r"\d{1,3}(\.\d{3})+(,\d+)?", v):
+        v = v.replace(".", "")
+    v = v.replace(",", ".")
+    try:
+        return float(v)
+    except ValueError:
+        return None
 
 
 # ---------------- HTML ----------------
@@ -276,6 +288,29 @@ def api_create_client(body: ClientIn, s: Session = Depends(db)):
     s.flush()
     run = run_client(s, c, kind="setup") if launch else None
     return {"id": c.id, "run_id": run.id if run else None, "report": run.report if run else None}
+
+
+class PreviewIn(BaseModel):
+    monthly_budget: float = 0
+    themes: list[str] = Field(default_factory=list)
+    objectives: list[str] = Field(default_factory=list)
+    platforms: list[str] = Field(default_factory=list)
+    description: str = ""
+    audience: str = ""
+    meta_pixel_id: str = ""
+
+
+@app.post("/api/plan-preview", dependencies=[Depends(auth)])
+def api_plan_preview(body: PreviewIn):
+    c = Client(
+        name="preview", monthly_budget=body.monthly_budget, themes=body.themes,
+        objectives=[o for o in body.objectives if o in OBJECTIVES],
+        platforms=[p for p in body.platforms if p in PLATFORMS],
+        description=body.description, audience=body.audience, meta_pixel_id=body.meta_pixel_id,
+    )
+    if body.monthly_budget <= 0:
+        return {"daily_total": 0, "campaigns": [], "notes": []}
+    return preview_plan(c, body.monthly_budget / days_in_month(today()))
 
 
 @app.get("/api/clients/{cid}/snapshot", dependencies=[Depends(auth)])

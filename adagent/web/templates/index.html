@@ -3,11 +3,11 @@
 {% block content %}
 <div class="actions" style="justify-content:space-between">
   <div><h1>Klanten</h1><p class="sub">Dagelijkse analyse om {{ '%02d'|format(settings.daily_hour) }}:00 · {{ settings.timezone }}</p></div>
-  <a class="btn primary" href="/clients/new">+ Nieuwe klant</a>
+  <a class="btn accent" href="/clients/new">+ Nieuwe klant</a>
 </div>
 {% if not rows %}
 <div class="card"><p>Nog geen klanten. Voeg een klant toe met budget en thema's — de agent bouwt en lanceert de campagnes en optimaliseert daarna dagelijks.</p>
-<a class="btn primary" href="/clients/new">Eerste klant toevoegen</a></div>
+<a class="btn accent" href="/clients/new">Eerste klant toevoegen</a></div>
 {% else %}
 <div class="table-wrap"><table>
 <thead><tr><th>Klant</th><th>Status</th><th class="n">Maandbudget</th><th>Besteed deze maand</th><th class="n">Kliks 7d</th><th class="n">Leads 7d</th><th class="n">Sales 7d</th><th class="n">ROAS 7d</th><th>Laatste run</th></tr></thead>

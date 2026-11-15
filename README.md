@@ -50,7 +50,7 @@ Elke actie — uitgevoerd, geweigerd of mislukt — wordt gelogd met reden en is
 
 ## Thema's en budget wijzigen
 
-Pas de klant aan in het dashboard. Budget gaat direct mee in de pacing. Nieuwe thema's worden bij de volgende run gelanceerd; campagnes van verwijderde thema's worden gepauzeerd.
+Het invoerscherm toont tijdens het invullen live welke campagnes de agent gaat bouwen, met waarschuwingen als het budget te klein is voor een platform of doel. Pas een klant later aan via Bewerken. Budget gaat direct mee in de pacing. Nieuwe thema's worden bij de volgende run gelanceerd; campagnes van verwijderde thema's worden gepauzeerd.
 
 ## Live gaan (echte campagnes)
 
@@ -72,6 +72,7 @@ Belangrijk vóór de eerste live klant:
 ## JSON-API (voor koppelingen, bijv. n8n/Make)
 
 - `POST /api/clients` — klant aanmaken en direct lanceren (`name`, `website`, `monthly_budget`, `themes`, optioneel doelen/platformen/KPI's/account-ID's)
+- `POST /api/plan-preview` — voorvertoning van het campagneplan voor budget, thema's, doelen en platformen (niets wordt aangemaakt)
 - `GET /api/clients` — overzicht met pacing
 - `GET /api/clients/{id}/snapshot` — volledige analyse
 - `POST /api/clients/{id}/run` — nu analyseren en optimaliseren

@@ -20,7 +20,7 @@
 </div>
 
 <div class="grid">
-  <div class="card stat"><div class="k">Besteed deze maand</div><div class="v">{{ p.spent_mtd|euro(0) }}</div><div class="muted">van {{ p.monthly_budget|euro(0) }}</div>
+  <div class="card stat"><div class="k">Besteed deze maand</div><div class="v">{{ p.spent_mtd|euro(0) }}</div><div class="muted">van {{ p.monthly_budget|euro(0) }}{% if p.monthly_budget < c.monthly_budget - 0.5 %} · deze maand naar rato{% endif %}</div>
     <div class="bar" style="margin-top:6px"><i style="width:{{ [(p.spent_mtd / p.monthly_budget * 100) if p.monthly_budget else 0, 100]|min }}%"></i></div></div>
   <div class="card stat"><div class="k">Dagbudget nu / doel</div><div class="v">{{ p.current_daily_total|euro(0) }}</div><div class="muted">doel {{ p.target_daily_total|euro(2) }} · nog {{ p.days_left }} dagen</div></div>
   <div class="card stat"><div class="k">Bereik 7d</div><div class="v">{{ t.reach|num }}</div><div class="muted">{{ t.impressions|num }} vertoningen</div></div>

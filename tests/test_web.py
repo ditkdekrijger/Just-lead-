@@ -40,3 +40,36 @@ def test_basic_auth(session, monkeypatch):
     with TestClient(webapp.app) as tc:
         assert tc.get("/").status_code == 401
         assert tc.get("/", auth=("admin", "geheim")).status_code == 200
+
+
+def test_plan_preview_and_intake_form(session, monkeypatch):
+    from adagent.web import app as webapp
+
+    monkeypatch.setattr(webapp, "init_engine", lambda: None)
+    with TestClient(webapp.app) as tc:
+        page = tc.get("/clients/new").text
+        assert 'id="plan' not in page and "Wat de agent gaat bouwen" in page and 'name="themes"' in page
+        r = tc.post("/api/plan-preview", json={"monthly_budget": 3000, "themes": ["Warmtepomp", "Zonnepanelen"],
+                                               "objectives": ["reach", "clicks", "leads", "sales"],
+                                               "platforms": ["meta", "google", "linkedin"],
+                                               "description": "Installateur voor particulieren"}).json()
+        assert len(r["campaigns"]) == 13
+        assert any("LinkedIn valt af" in n["title"] for n in r["notes"])
+        small = tc.post("/api/plan-preview", json={"monthly_budget": 800, "themes": ["A", "B"],
+                                                   "objectives": ["reach", "clicks", "leads", "sales"],
+                                                   "platforms": ["meta", "google", "linkedin"]}).json()
+        assert any("vallen af" in n["title"] for n in small["notes"])
+        assert tc.post("/api/plan-preview", json={"monthly_budget": 0}).json()["campaigns"] == []
+        # Nederlandse notatie in het formulier
+        r = tc.post("/clients", data={"name": "Fietsenwinkel", "website": "https://fiets.nl", "monthly_budget": "2.500",
+                                      "themes": "E-bikes\nOnderhoud", "obj_leads": "1", "pf_google": "1",
+                                      "locations": "NL,BE", "target_cpl": "22,50", "autopilot": "1", "launch_now": "1"},
+                    follow_redirects=False)
+        assert r.status_code == 303
+        from adagent.models import Client
+
+        c = session.query(Client).filter_by(name="Fietsenwinkel").one()
+        assert c.monthly_budget == 2500 and c.target_cpl == 22.5 and c.locations == ["NL", "BE"]
+        assert c.campaigns
+        edit = tc.get(f"/clients/{c.id}/edit").text
+        assert "Klant bewerken" in edit and "E-bikes" in edit and "Opslaan" in edit
