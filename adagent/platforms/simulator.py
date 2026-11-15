@@ -80,6 +80,7 @@ class SimulatorConnector(Connector):
         ad_q = {
             a.id: quality("ad", campaign.id, a.headlines[:1], a.primary_text[:40], a.generation)
             * (1 + 0.07 * (a.generation - 1))
+            * (1.12 if a.assets else 1.0)
             for a in active_ads
         }
         total_q = sum(ad_q.values())

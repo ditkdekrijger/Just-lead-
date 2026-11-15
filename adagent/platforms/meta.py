@@ -6,8 +6,10 @@ Docs: https://developers.facebook.com/docs/marketing-api
 
 from __future__ import annotations
 
+import base64
 import datetime as dt
 import json
+from pathlib import Path
 
 import httpx2 as httpx
 
@@ -134,7 +136,10 @@ class MetaConnector(Connector):
             "description": (ad.descriptions or [""])[0],
             "call_to_action": {"type": cta, "value": {"link": link}},
         }
-        if ad.image_url:
+        image = (ad.assets or {}).get("1x1") or (ad.assets or {}).get("4x5")
+        if image and Path(image).exists():
+            link_data["image_hash"] = self._upload_image(image)
+        elif ad.image_url:
             link_data["picture"] = ad.image_url
         creative = self._post(
             f"{self.account}/adcreatives",
@@ -153,6 +158,15 @@ class MetaConnector(Connector):
             },
         )
         ad.external_id = res["id"]
+
+    def _upload_image(self, path: str) -> str:
+        res = self._post(f"{self.account}/adimages",
+                         {"bytes": base64.b64encode(Path(path).read_bytes()).decode()})
+        images = res.get("images") or {}
+        first = next(iter(images.values()), {})
+        if not first.get("hash"):
+            raise PlatformError(f"Meta gaf geen image hash terug: {res}")
+        return first["hash"]
 
     def set_ad_status(self, campaign: Campaign, ad: Ad, active: bool) -> None:
         self._post(ad.external_id, {"status": "ACTIVE" if active else "PAUSED"})

@@ -117,7 +117,8 @@ def propose(snap: dict) -> list[dict]:
                         "reason": f"CTR {a['last_7_days']['ctr']:.2%} vs campagne {camp_ctr:.2%}",
                     })
                     refresh = True
-        if refresh or len(live_ads) < 2:
+        waiting = any(a["status"] == "pending" for a in c["ads"])
+        if (refresh or len(live_ads) < 2) and not waiting:
             best = max(judged, key=lambda a: a["last_7_days"]["ctr"] or 0, default=None)
             proposals.append({
                 "type": "create_ad", "campaign_id": c["campaign_id"], "theme": c["theme"],

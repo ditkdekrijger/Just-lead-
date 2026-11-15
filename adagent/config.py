@@ -54,6 +54,9 @@ class Settings:
     learning_days: int = field(default_factory=lambda: _int("ADAGENT_LEARNING_DAYS", 3))
     max_new_ads_per_day: int = field(default_factory=lambda: _int("ADAGENT_MAX_NEW_ADS_PER_DAY", 4))
 
+    media_dir: str = field(default_factory=lambda: _env("ADAGENT_MEDIA_DIR", "media"))
+    public_url: str = field(default_factory=lambda: _env("ADAGENT_PUBLIC_URL", "http://localhost:8000").rstrip("/"))
+
     anthropic_api_key: str = field(default_factory=lambda: _env("ANTHROPIC_API_KEY"))
     model: str = field(default_factory=lambda: _env("ADAGENT_MODEL", "claude-opus-5-5"))
     effort: str = field(default_factory=lambda: _env("ADAGENT_EFFORT", "high"))

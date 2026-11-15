@@ -193,6 +193,9 @@ def snapshot(session: Session, client: Client, today: dt.date) -> dict:
             ka = kpis(session, ad_id=a.id, start=week, end=yesterday)
             ads.append({
                 "ad_id": a.id, "status": a.status, "theme": a.theme, "generation": a.generation,
+                "approval": a.approval, "feedback": a.feedback[:300] if a.status == "rejected" else "",
+                "visual_headline": (a.visual or {}).get("headline", ""),
+                "has_image": bool(a.assets), "image_fmt": next(iter(a.assets or {}), ""),
                 "headline": (a.headlines or [""])[0], "primary_text": a.primary_text[:160],
                 "last_7_days": ka.to_dict(),
                 "enough_data": ka.impressions >= MIN_IMPRESSIONS[c.platform],

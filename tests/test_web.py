@@ -73,3 +73,59 @@ def test_plan_preview_and_intake_form(session, monkeypatch):
         assert c.campaigns
         edit = tc.get(f"/clients/{c.id}/edit").text
         assert "Klant bewerken" in edit and "E-bikes" in edit and "Opslaan" in edit
+
+
+def test_approval_flow_via_web(session, monkeypatch, tmp_path):
+    import io
+
+    from PIL import Image
+
+    from adagent.models import Client
+    from adagent.web import app as webapp
+
+    monkeypatch.setattr(webapp, "init_engine", lambda: None)
+    monkeypatch.setenv("ADAGENT_PASSWORD", "geheim")
+    buf = io.BytesIO()
+    Image.new("RGB", (900, 700), (30, 90, 60)).save(buf, "JPEG")
+    with TestClient(webapp.app) as tc:
+        auth = ("admin", "geheim")
+        r = tc.post("/clients", auth=auth, data={
+            "name": "Hoveniersbedrijf Groen", "website": "https://groen.nl", "monthly_budget": "2.000",
+            "themes": "Tuinontwerp", "obj_leads": "1", "pf_meta": "1", "pf_google": "1", "autopilot": "1",
+            "creative_approval": "1", "brand_color": "#1e5a3c", "accent_color": "#f2c14e", "launch_now": "1"},
+            files=[("photos", ("tuin.jpg", buf.getvalue(), "image/jpeg")),
+                   ("logo", ("x.txt", b"geen beeld", "text/plain"))], follow_redirects=False)
+        assert r.status_code == 303 and r.headers["location"].startswith("/akkoord/")
+        link = r.headers["location"]
+        c = session.query(Client).filter_by(name="Hoveniersbedrijf Groen").one()
+        session.refresh(c)
+        assert c.brand_color == "#1e5a3c" and len(c.photos) == 1 and c.logo_path == ""
+        assert all(x.status == "pending" for x in c.campaigns)
+
+        # Klant opent de link zonder login
+        page = tc.get(link)
+        assert page.status_code == 200 and "wacht" in page.text and "Goedkeuren" in page.text
+        meta_ad = next(a for x in c.campaigns if x.platform == "meta" for a in x.ads)
+        img = tc.get(f"{link}/beeld/{meta_ad.id}/1x1")
+        assert img.status_code == 200 and img.content[:4] == b"\x89PNG"
+        assert tc.get(f"{link}/beeld/{meta_ad.id}/../../etc").status_code == 404
+        assert tc.get("/akkoord/ongeldig-token-123456789").status_code == 404
+        assert tc.get("/").status_code == 401  # dashboard blijft afgeschermd
+
+        # Afwijzen met feedback → nieuwe versie
+        r = tc.post(f"{link}/ad/{meta_ad.id}", data={"action": "reject", "feedback": "Liever een foto van een tuin", "by": "Klant"},
+                    follow_redirects=False)
+        assert r.status_code == 303
+        session.expire_all()
+        assert session.get(type(meta_ad), meta_ad.id).status == "rejected"
+
+        # Alles goedkeuren → campagnes live
+        r = tc.post(f"{link}/alles", data={"by": "Klant"}, follow_redirects=False)
+        assert r.status_code == 303
+        session.expire_all()
+        c = session.query(Client).filter_by(name="Hoveniersbedrijf Groen").one()
+        assert all(x.status == "active" and x.external_id for x in c.campaigns)
+        assert "Niets te beoordelen" in tc.get(link).text
+        assert tc.get(f"/clients/{c.id}", auth=auth).status_code == 200
+        api = tc.get(f"/api/clients/{c.id}/approvals", auth=auth).json()
+        assert api["pending"] == [] and api["approval_url"].endswith(c.approval_token)

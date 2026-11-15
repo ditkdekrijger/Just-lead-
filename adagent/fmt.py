@@ -22,12 +22,14 @@ def pct(v) -> str:
 STATUS_NL = {
     "active": "actief", "paused": "gepauzeerd", "error": "fout", "new": "nieuw", "done": "klaar",
     "running": "bezig", "applied": "uitgevoerd", "rejected": "geweigerd", "failed": "mislukt",
-    "proposed": "voorstel", "setup": "opstart", "daily": "dagelijks", "manual": "handmatig",
+    "proposed": "voorstel", "pending": "wacht op akkoord", "rejected": "afgewezen", "approved": "goedgekeurd",
+    "auto": "automatisch", "setup": "opstart", "daily": "dagelijks", "manual": "handmatig",
 }
 ACTION_NL = {
     "set_budget": "Budget aangepast", "pause_campaign": "Campagne gepauzeerd", "resume_campaign": "Campagne hervat",
     "pause_ad": "Advertentie gepauzeerd", "create_ad": "Nieuwe advertentie", "launch_campaign": "Campagne gelanceerd",
-    "strategy": "Strategie",
+    "strategy": "Strategie", "approve_ad": "Goedgekeurd", "reject_ad": "Afgewezen", "publish_ad": "Gepubliceerd",
+    "prepare_campaign": "Klaargezet voor akkoord",
 }
 
 

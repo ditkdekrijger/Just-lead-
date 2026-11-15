@@ -18,6 +18,7 @@ config.reload_settings()
 def session(tmp_path, monkeypatch):
     from adagent import db
 
+    monkeypatch.setattr(config.settings, "media_dir", str(tmp_path / "media"))
     db.init_engine(f"sqlite:///{tmp_path / 'test.db'}")
     s = db.get_sessionmaker()()
     yield s
@@ -32,7 +33,7 @@ def make_client(session):
         data = dict(
             name="Testklant", website="https://example.nl", monthly_budget=3000,
             themes=["Warmtepomp", "Zonnepanelen"], objectives=["reach", "clicks", "leads", "sales"],
-            platforms=["meta", "google", "linkedin"], target_cpl=35.0,
+            platforms=["meta", "google", "linkedin"], target_cpl=35.0, creative_approval=False,
         )
         data.update(kw)
         c = Client(**data)

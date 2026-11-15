@@ -65,8 +65,8 @@ details summary{cursor:pointer;color:var(--muted)}
 </head>
 <body>
 <header><div class="wrap">
-  <a class="brand" href="/">JUST.LEAD.</a><span class="brand-sub">Advertentie Agent</span>
-  <span class="mode {{ 'live' if settings.live }}">{{ 'LIVE' if settings.live else 'Sandbox' }} · {{ 'AI' if settings.ai_enabled else 'Regels' }}</span>
+  <a class="brand" href="{% block brandhref %}/{% endblock %}">JUST.LEAD.</a><span class="brand-sub">Advertentie Agent</span>
+  {% block headright %}<span class="mode {{ 'live' if settings.live }}">{{ 'LIVE' if settings.live else 'Sandbox' }} · {{ 'AI' if settings.ai_enabled else 'Regels' }}</span>{% endblock %}
 </div></header>
 <main><div class="wrap">{% block content %}{% endblock %}</div></main>
 </body>

@@ -27,7 +27,7 @@ def _camp(objective="leads", platform="meta"):
     return c, ad
 
 
-def test_meta(creds, make_client):
+def test_meta(creds, make_client, tmp_path):
     from adagent.platforms.meta import MetaConnector
 
     seen = []
@@ -40,6 +40,8 @@ def test_meta(creds, make_client):
             return httpx.Response(200, json={"id": "c1"})
         if path.endswith("/adsets"):
             return httpx.Response(200, json={"id": "as1"})
+        if path.endswith("/adimages"):
+            return httpx.Response(200, json={"images": {"x.png": {"hash": "HASH123"}}})
         if path.endswith("/adcreatives"):
             return httpx.Response(200, json={"id": "cr1"})
         if path.endswith("/ads"):
@@ -54,6 +56,9 @@ def test_meta(creds, make_client):
     client = make_client(meta_ad_account_id="123", meta_page_id="pg", meta_pixel_id="px")
     conn = MetaConnector(client, http=httpx.Client(transport=httpx.MockTransport(handler)))
     camp, ad = _camp()
+    img = tmp_path / "ad.png"
+    img.write_bytes(b"\x89PNG fake")
+    ad.assets = {"1x1": str(img)}
     conn.create_campaign(camp, [ad], active=True)
     assert camp.external_id == "c1" and camp.external_refs["adset_id"] == "as1" and ad.external_id == "ad1"
     c_body = seen[0][2]
@@ -61,6 +66,8 @@ def test_meta(creds, make_client):
     assert c_body["objective"] == ["OUTCOME_LEADS"] and c_body["daily_budget"] == ["2550"]
     adset = seen[1][2]
     assert json.loads(adset["promoted_object"][0]) == {"pixel_id": "px", "custom_event_type": "LEAD"}
+    creative = next(b for m, pth, b in seen if pth.endswith("/adcreatives"))
+    assert json.loads(creative["object_story_spec"][0])["link_data"]["image_hash"] == "HASH123"
     stats = conn.fetch_stats(camp, dt.date(2026, 3, 3))
     assert stats[0].leads == 2 and stats[0].spend == 12.34 and stats[0].ad_external_id == "ad1"
     conn.set_daily_budget(camp, 30)
@@ -106,15 +113,20 @@ def test_google(creds, make_client):
     assert stats[0].spend == 15.0 and stats[0].leads == 3.0 and stats[0].ad_external_id == "44"
 
 
-def test_linkedin(creds, make_client):
+def test_linkedin(creds, make_client, tmp_path):
     from adagent.platforms.linkedin import LinkedInConnector
 
     seen = []
     ids = iter(["900", "901", "urn:li:share:1", "555"])
 
     def handler(req: httpx.Request):
-        assert req.headers["LinkedIn-Version"] == settings.linkedin_api_version
-        seen.append((req.method, str(req.url), json.loads(req.content) if req.content else None, req.headers))
+        if req.method != "PUT":
+            assert req.headers["LinkedIn-Version"] == settings.linkedin_api_version
+        seen.append((req.method, str(req.url), json.loads(req.content) if req.content and req.method != "PUT" else None, req.headers))
+        if "initializeUpload" in str(req.url):
+            return httpx.Response(200, json={"value": {"uploadUrl": "https://upload.example/x", "image": "urn:li:image:IMG1"}})
+        if req.method == "PUT":
+            return httpx.Response(201)
         if req.method == "GET":
             return httpx.Response(200, json={"elements": [{"pivotValues": ["urn:li:sponsoredCreative:555"],
                                                            "impressions": 1000, "clicks": 9,
@@ -126,11 +138,16 @@ def test_linkedin(creds, make_client):
     client = make_client(linkedin_ad_account_id="42", linkedin_org_id="77", linkedin_lead_form_id="88")
     conn = LinkedInConnector(client, http=httpx.Client(transport=httpx.MockTransport(handler)))
     camp, ad = _camp("leads", "linkedin")
+    img = tmp_path / "ad.png"
+    img.write_bytes(b"\x89PNG fake")
+    ad.assets = {"191x100": str(img)}
     conn.create_campaign(camp, [ad], active=True)
     assert camp.external_id == "901" and ad.external_id == "555"
     body = seen[1][2]
     assert body["objectiveType"] == "LEAD_GENERATION" and body["dailyBudget"]["amount"] == "25.50"
-    creative = seen[3][2]
+    post = next(b for m, u, b, h in seen if u.endswith("/rest/posts"))
+    assert post["content"]["media"]["id"] == "urn:li:image:IMG1" and post["contentLandingPage"] == "https://example.nl"
+    creative = next(b for m, u, b, h in seen if u.endswith("/creatives"))
     assert creative["leadgenCallToAction"]["destination"] == "urn:li:adForm:88"
     conn.set_daily_budget(camp, 30)
     assert seen[-1][2] == {"patch": {"$set": {"dailyBudget": {"amount": "30.00", "currencyCode": "EUR"}}}}

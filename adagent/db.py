@@ -28,7 +28,49 @@ def init_engine(url: str | None = None):
     from . import models  # noqa: F401  (registreert tabellen)
 
     Base.metadata.create_all(_engine)
+    _add_missing_columns(_engine)
     return _engine
+
+
+def _add_missing_columns(engine) -> None:
+    """Lichte migratie: nieuwe kolommen toevoegen aan bestaande tabellen (met hun standaardwaarde)."""
+    import json
+
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            if not insp.has_table(table.name):
+                continue
+            existing = {c["name"] for c in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name in existing:
+                    continue
+                ddl = f'ALTER TABLE "{table.name}" ADD COLUMN "{col.name}" {col.type.compile(engine.dialect)}'
+                default = col.default.arg if col.default is not None and not callable(col.default.arg) else None
+                if col.default is not None and callable(col.default.arg):
+                    try:
+                        default = col.default.arg(None)
+                    except TypeError:
+                        default = None
+                    if isinstance(default, str) and len(default) > 20:
+                        default = None  # bv. tokens: per rij invullen hieronder
+                if isinstance(default, bool):
+                    ddl += f" DEFAULT {int(default)}"
+                elif isinstance(default, (int, float)):
+                    ddl += f" DEFAULT {default}"
+                elif isinstance(default, str):
+                    ddl += " DEFAULT '" + default.replace("'", "''") + "'"
+                elif isinstance(default, (list, dict)):
+                    ddl += " DEFAULT '" + json.dumps(default) + "'"
+                conn.execute(text(ddl))
+        if insp.has_table("clients"):
+            import secrets
+
+            for (cid,) in conn.execute(text("SELECT id FROM clients WHERE approval_token IS NULL OR approval_token = ''")):
+                conn.execute(text("UPDATE clients SET approval_token = :t WHERE id = :i"),
+                             {"t": secrets.token_urlsafe(24), "i": cid})
 
 
 def get_sessionmaker() -> sessionmaker:

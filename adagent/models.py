@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import secrets
 from typing import Any
 
 from sqlalchemy import (
@@ -56,6 +57,15 @@ class Client(Base):
 
     autopilot: Mapped[bool] = mapped_column(Boolean, default=True)
     status: Mapped[str] = mapped_column(String(20), default="new")  # new|active|paused
+
+    # Advertentiemateriaal en akkoord
+    creative_approval: Mapped[bool] = mapped_column(Boolean, default=True)
+    approval_timeout_hours: Mapped[int] = mapped_column(Integer, default=0)  # 0 = wachten op akkoord
+    approval_token: Mapped[str] = mapped_column(String(64), default=lambda: secrets.token_urlsafe(24))
+    brand_color: Mapped[str] = mapped_column(String(9), default="#0a0a0b")
+    accent_color: Mapped[str] = mapped_column(String(9), default="#ff5a1f")
+    logo_path: Mapped[str] = mapped_column(String(500), default="")
+    photos: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     # Platform-accounts van deze klant
     meta_ad_account_id: Mapped[str] = mapped_column(String(64), default="")
@@ -127,9 +137,19 @@ class Ad(Base):
     cta: Mapped[str] = mapped_column(String(50), default="LEARN_MORE")
     landing_url: Mapped[str] = mapped_column(String(1000), default="")
     image_url: Mapped[str] = mapped_column(String(1000), default="")
+    #: active | paused | pending (wacht op akkoord) | rejected
     status: Mapped[str] = mapped_column(String(20), default="active")
     external_id: Mapped[str] = mapped_column(String(200), default="")
     generation: Mapped[int] = mapped_column(Integer, default=1)
+    #: Akkoord: pending | approved | rejected | auto (zonder akkoordstap)
+    approval: Mapped[str] = mapped_column(String(20), default="auto")
+    approved_by: Mapped[str] = mapped_column(String(120), default="")
+    approved_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    feedback: Mapped[str] = mapped_column(Text, default="")
+    #: Beeldbrief: headline, subline, badge, bullets, template
+    visual: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    #: Gerenderde beelden per formaat: {"1x1": pad, "4x5": pad, "191x100": pad}
+    assets: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     campaign: Mapped[Campaign] = relationship(back_populates="ads")

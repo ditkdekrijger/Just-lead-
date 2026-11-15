@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from . import llm
 from .analysis import snapshot, sync_metrics
+from .approval import auto_approve_expired, pending_ads, publish_approved
 from .clock import today as _today
 from .config import settings
 from .copywriting import make_copy
@@ -38,6 +39,10 @@ def _days_to_sync(session: Session, client: Client, today: dt.date) -> list[dt.d
     )
     start = max(start, min(launches), today - dt.timedelta(days=MAX_BACKFILL))
     return [start + dt.timedelta(days=i) for i in range((yesterday - start).days + 1)]
+
+
+def approval_url(client: Client) -> str:
+    return f"{settings.public_url}/akkoord/{client.approval_token}"
 
 
 def _covered_themes(camp: Campaign) -> set[str]:
@@ -124,9 +129,16 @@ def run_client(session: Session, client: Client, today: dt.date | None = None, k
             camps = launch_plan(session, client, today, run.id)
             session.flush()
             ok = [c for c in camps if c.status != "error"]
-            lines = [f"Opstart {client.name} — {today.isoformat()}", "",
-                     f"{len(ok)} campagnes aangemaakt ({'live' if client.autopilot else 'gepauzeerd, autopilot uit'}), "
-                     f"totaal {euro(sum(c.daily_budget for c in ok))} per dag.", ""]
+            if client.creative_approval:
+                n_ads = len(pending_ads(client))
+                head = (f"{len(ok)} campagnes en {n_ads} advertenties met beeldmateriaal klaargezet voor akkoord, "
+                        f"totaal {euro(sum(c.daily_budget for c in ok))} per dag. Na goedkeuring gaan ze "
+                        f"{'direct live' if client.autopilot else 'gepauzeerd'} op de platformen.\n"
+                        f"Akkoordpagina: {approval_url(client)}")
+            else:
+                head = (f"{len(ok)} campagnes aangemaakt ({'live' if client.autopilot else 'gepauzeerd, autopilot uit'}), "
+                        f"totaal {euro(sum(c.daily_budget for c in ok))} per dag.")
+            lines = [f"Opstart {client.name} — {today.isoformat()}", "", head, ""]
             for c in camps:
                 lines.append(f"- {PLATFORM_LABELS[c.platform]} · {OBJECTIVE_LABELS[c.objective]} · {c.theme}: "
                              f"{euro(c.daily_budget)}/dag, {len(c.ads)} advertenties"
@@ -139,6 +151,10 @@ def run_client(session: Session, client: Client, today: dt.date | None = None, k
             return run
 
         theme_notes = _sync_themes(session, client, today, run)
+        auto = auto_approve_expired(session, client)
+        if auto:
+            theme_notes.append(f"{auto} advertentie(s) automatisch goedgekeurd na {client.approval_timeout_hours} uur zonder reactie.")
+        theme_notes += publish_approved(session, client, today)
         errors = []
         for d in _days_to_sync(session, client, today):
             errors += sync_metrics(session, client, d)
@@ -176,6 +192,10 @@ def run_client(session: Session, client: Client, today: dt.date | None = None, k
             run.report = report or _rules_report(client, snap, run)
         if theme_notes:
             run.report = "\n".join(theme_notes) + "\n\n" + run.report
+        waiting = pending_ads(client)
+        if waiting:
+            run.report += (f"\n\nWacht op akkoord: {len(waiting)} advertentie(s) met beeldmateriaal. "
+                           f"Bekijk en keur goed: {approval_url(client)}")
         if errors:
             run.report += "\n\nLet op — cijfers niet volledig opgehaald:\n" + "\n".join(f"- {e}" for e in errors[:10])
         run.status = "done"

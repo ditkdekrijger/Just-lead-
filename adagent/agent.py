@@ -26,6 +26,7 @@ Principes:
 - Verschuif budget naar wat bewezen werkt, binnen hetzelfde doel; houd het totaal rond target_daily_total uit de pacing.
 - Vervang zwakke advertenties door nieuwe varianten met een andere invalshoek (voordeel, pijnpunt, bewijs, urgentie); leer van de best presterende kop. Schrijf in de taal van de klant, eerlijk, zonder verzonnen claims, kortingen of prijzen.
 - Verlaag budget eerst voordat je elders verhoogt.
+- Elke nieuwe advertentie krijgt automatisch een bijpassend beeld. Bij klanten met een akkoordstap wordt hij pas gepubliceerd na goedkeuring; maak dan geen tweede variant zolang er een wacht. Afgewezen versies en hun feedback staan in de momentopname: leer daarvan.
 - Doe niets als niets nodig is; stilstaan is ook een keuze.
 
 Dagrapport (Nederlands, max. 200 woorden, platte tekst met korte kopjes): 1) Resultaat gisteren en afgelopen 7 dagen t.o.v. doelen, 2) Wat je vandaag hebt aangepast en waarom, 3) Aandachtspunten / advies aan de klant (bijv. landingspagina, conversietracking, extra creatives)."""
@@ -84,7 +85,9 @@ TOOLS: list[dict[str, Any]] = [
         "description": (
             "Voeg een nieuwe advertentievariant toe aan een campagne. Limieten — Google: 8-15 koppen ≤30 tekens, "
             "2-4 beschrijvingen ≤90 tekens. Meta: 1-3 koppen ≤40, 1-2 beschrijvingen ≤30, hoofdtekst ≤250. "
-            "LinkedIn: 1 kop ≤70, 1 beschrijving ≤100, introtekst ≤300. Te lange teksten worden ingekort."
+            "LinkedIn: 1 kop ≤70, 1 beschrijving ≤100, introtekst ≤300. Te lange teksten worden ingekort. "
+            "Voor Meta en LinkedIn wordt automatisch een advertentiebeeld in de huisstijl van de klant gemaakt met "
+            "visual_headline en visual_subline. Staat akkoord aan bij de klant, dan wacht de variant op goedkeuring."
         ),
         "strict": True,
         "input_schema": {
@@ -95,9 +98,12 @@ TOOLS: list[dict[str, Any]] = [
                 "headlines": {"type": "array", "items": {"type": "string"}},
                 "descriptions": {"type": "array", "items": {"type": "string"}},
                 "primary_text": {"type": "string"},
+                "visual_headline": {"type": "string", "description": "Kop op het advertentiebeeld, max 38 tekens"},
+                "visual_subline": {"type": "string", "description": "Ondertitel op het beeld, max 70 tekens"},
                 "reason": {"type": "string"},
             },
-            "required": ["campaign_id", "theme", "headlines", "descriptions", "primary_text", "reason"],
+            "required": ["campaign_id", "theme", "headlines", "descriptions", "primary_text",
+                         "visual_headline", "visual_subline", "reason"],
             "additionalProperties": False,
         },
     },
@@ -118,7 +124,9 @@ def run_agent(client: Client, snap: dict, proposals: list[dict], ex: Executor) -
             if name == "create_ad_variant":
                 copy = AdCopy(headlines=args["headlines"], descriptions=args["descriptions"],
                               primary_text=args["primary_text"])
-                return ex.create_ad(args["campaign_id"], copy, args["reason"], theme=args.get("theme"))
+                visual = {"headline": args.get("visual_headline", ""), "subline": args.get("visual_subline", "")}
+                return ex.create_ad(args["campaign_id"], copy, args["reason"], theme=args.get("theme"),
+                                    visual={k: v for k, v in visual.items() if v})
         except GuardrailError as e:
             return f"GEWEIGERD: {e}"
         return f"Onbekende tool: {name}"

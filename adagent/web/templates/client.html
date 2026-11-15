@@ -19,6 +19,14 @@
   </div>
 </div>
 
+{% if pending %}
+<div class="card" style="display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--black);color:#fff">
+  <div><b style="font-size:19px;font-variation-settings:'wdth' 90">{{ pending }} advertentie{{ 's' if pending != 1 }} wacht{{ 'en' if pending != 1 }} op akkoord</b>
+  <div style="color:var(--on-black-70);font-size:14px">Ze gaan pas live na goedkeuring. Stuur de link naar de klant of keur zelf goed.</div></div>
+  <div class="actions"><a class="btn accent" href="{{ approval_url }}">Bekijken en goedkeuren</a>
+  <button type="button" class="btn" style="background:transparent;color:#fff;border-color:var(--on-black-55)" onclick="navigator.clipboard.writeText('{{ approval_url }}').then(()=>this.textContent='Link gekopieerd').catch(()=>{this.textContent='{{ approval_url }}'})">Link voor klant kopiëren</button></div>
+</div>
+{% endif %}
 <div class="grid">
   <div class="card stat"><div class="k">Besteed deze maand</div><div class="v">{{ p.spent_mtd|euro(0) }}</div><div class="muted">van {{ p.monthly_budget|euro(0) }}{% if p.monthly_budget < c.monthly_budget - 0.5 %} · deze maand naar rato{% endif %}</div>
     <div class="bar" style="margin-top:6px"><i style="width:{{ [(p.spent_mtd / p.monthly_budget * 100) if p.monthly_budget else 0, 100]|min }}%"></i></div></div>
@@ -52,7 +60,7 @@
   <td class="n">{% set v = k[x.primary_kpi] %}{{ x.primary_kpi|upper }} {{ v|num(2) }}
     {% if v is not none and b.reference %}{% set better = (v >= b.reference) if x.primary_kpi_higher_is_better else (v <= b.reference) %}<span class="{{ 'good' if better else 'bad' }}">{{ '▲' if better else '▼' }}</span>{% endif %}</td>
   <td><details><summary>{{ x.ads|selectattr('status','equalto','active')|list|length }}/{{ x.ads|length }}</summary>
-    {% for a in x.ads %}<div style="white-space:normal;max-width:360px;margin:6px 0;font-size:13px"><span class="chip {{ a.status }}">{{ a.status|nl }}</span> <b>{{ a.headline }}</b> <span class="muted">gen {{ a.generation }} · CTR {{ a.last_7_days.ctr|pct }}</span><br><span class="muted">{{ a.primary_text }}</span></div>{% endfor %}
+    {% for a in x.ads %}<div style="white-space:normal;max-width:360px;margin:6px 0;font-size:13px">{% if a.has_image %}<img src="/akkoord/{{ c.approval_token }}/beeld/{{ a.ad_id }}/{{ a.image_fmt }}" alt="" style="width:120px;border-radius:8px;display:block;margin:4px 0">{% endif %}<span class="chip {{ a.status }}">{{ a.status|nl }}</span> <b>{{ a.headline }}</b> <span class="muted">gen {{ a.generation }} · CTR {{ a.last_7_days.ctr|pct }}</span><br><span class="muted">{{ a.primary_text }}</span></div>{% endfor %}
   </details></td>
 </tr>
 {% else %}<tr><td colspan="13" class="muted">Nog geen campagnes.</td></tr>{% endfor %}

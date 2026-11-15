@@ -6,7 +6,8 @@ Je voert per klant **budget en thema's** in; de agent doet de rest:
 1. **Strategie** – verdeelt het maandbudget over de doelen *bereik, kliks, leads, sales* en over de platformen (met Claude, of met ingebouwde vuistregels; B2B-klanten krijgen automatisch meer LinkedIn).
 2. **Opbouw** – maakt campagnes, doelgroepen, zoekwoorden en advertentieteksten per platform (binnen de tekenlimieten) en lanceert ze.
 3. **Dagelijkse analyse** – haalt elke ochtend de cijfers op, berekent KPI's per campagne en advertentie en bewaakt de budget-pacing.
-4. **Dagelijkse verbetering** – verschuift budget naar winnaars, pauzeert verliezers, vervangt zwakke advertenties door nieuwe varianten en schrijft een dagrapport.
+4. **Advertentiemateriaal + akkoord** – bij elke advertentie maakt de agent een bijpassend beeld in de huisstijl van de klant (merkkleuren, logo, eigen foto's) in de formaten 1:1, 4:5 en 1,91:1. Alles wordt eerst klaargezet voor akkoord; na goedkeuring publiceert de agent zelf.
+5. **Dagelijkse verbetering** – verschuift budget naar winnaars, pauzeert verliezers, vervangt zwakke advertenties door nieuwe varianten en schrijft een dagrapport.
 
 ## Snel starten
 
@@ -48,6 +49,16 @@ Elke dag (standaard 07:00, `ADAGENT_DAILY_HOUR`):
 
 Elke actie — uitgevoerd, geweigerd of mislukt — wordt gelogd met reden en is zichtbaar in het dashboard.
 
+## Advertentiemateriaal en akkoord
+
+- **Beelden**: per advertentie een beeldbrief (kop, ondertitel, label, drie voordelen, knoptekst) van Claude, of zonder AI uit de advertentieteksten. Gerenderd in drie stijlen: *statement* (merkkleur met grote kop), *checklist* (kop + voordelen) en *photo* (eigen foto van de klant met tekst). Meta krijgt 1:1 en 4:5, LinkedIn 1,91:1 en 1:1. Google Search heeft geen beelden.
+- **Akkoordstap** (standaard aan, per klant uit te zetten): nieuwe campagnes en nieuwe varianten worden klaargezet en gaan pas live na goedkeuring. De agent maakt per campagne hooguit één nieuwe variant tegelijk zolang er een wacht.
+- **Akkoordpagina**: `/akkoord/<geheime link>` werkt zonder login, zodat je hem naar de klant kunt sturen. Per advertentie een voorbeeld zoals hij op het platform verschijnt, met *Goedkeuren* of *Iets anders graag* (feedback → de agent maakt direct een nieuwe versie). Of alles in één keer goedkeuren. De link staat in het dagrapport en op de klantpagina.
+- **Na akkoord** publiceert de agent direct: nieuwe campagnes worden dan pas gelanceerd (de leerfase begint op dat moment), nieuwe varianten worden aan de lopende campagne toegevoegd.
+- **Optioneel**: na 24, 48 of 72 uur zonder reactie automatisch goedkeuren.
+- Budgetwijzigingen en pauzes vallen niet onder de akkoordstap; die regelt de autopilot.
+- Lettertype voor de beelden: Archivo (SIL Open Font License), meegeleverd in `adagent/assets/fonts`.
+
 ## Thema's en budget wijzigen
 
 Het invoerscherm toont tijdens het invullen live welke campagnes de agent gaat bouwen, met waarschuwingen als het budget te klein is voor een platform of doel. Pas een klant later aan via Bewerken. Budget gaat direct mee in de pacing. Nieuwe thema's worden bij de volgende run gelanceerd; campagnes van verwijderde thema's worden gepauzeerd.
@@ -67,13 +78,16 @@ Belangrijk vóór de eerste live klant:
 - De live-koppelingen zijn gebouwd op de openbare API-documentatie en getest tegen nagebootste API's, **niet tegen echte accounts**. Start de eerste klant met **autopilot uit** (campagnes gepauzeerd), controleer de aangemaakte structuur in de platformen en zet dan autopilot aan.
 - API-versies zijn instelbaar (`META_API_VERSION`, `GOOGLE_ADS_API_VERSION`, `LINKEDIN_API_VERSION`); controleer of ze nog ondersteund worden.
 - Meta-advertenties zonder `image_url` gebruiken de link-preview van de website. Voor sterke creatives: voeg beeldmateriaal toe.
-- Zet `ADAGENT_PASSWORD` voor het dashboard.
+- Zet `ADAGENT_PASSWORD` voor het dashboard en `ADAGENT_PUBLIC_URL` op het publieke adres, zodat akkoordlinks voor klanten werken.
+- Beelden worden geüpload naar Meta (adimages) en LinkedIn (images-API); ook dit is alleen tegen nagebootste API's getest.
 
 ## JSON-API (voor koppelingen, bijv. n8n/Make)
 
 - `POST /api/clients` — klant aanmaken en direct lanceren (`name`, `website`, `monthly_budget`, `themes`, optioneel doelen/platformen/KPI's/account-ID's)
 - `POST /api/plan-preview` — voorvertoning van het campagneplan voor budget, thema's, doelen en platformen (niets wordt aangemaakt)
 - `GET /api/clients` — overzicht met pacing
+- `GET /api/clients/{id}/approvals` — advertenties die op akkoord wachten, met beeldlinks
+- `POST /api/ads/{id}/decision` — `{"action": "approve"|"reject", "feedback": "..."}`
 - `GET /api/clients/{id}/snapshot` — volledige analyse
 - `POST /api/clients/{id}/run` — nu analyseren en optimaliseren
 
@@ -97,6 +111,8 @@ adagent/
   executor.py     uitvoeren met guardrails + logging
   runner.py       orkestratie per klant (setup / dagelijks)
   copywriting.py  advertentieteksten (AI + templates, platformlimieten)
+  creative.py     beeldbrief en rendering van advertentiebeelden
+  approval.py     akkoordstap: goedkeuren, afwijzen met feedback, publiceren
   platforms/      meta.py, google_ads.py, linkedin.py, simulator.py
   web/            dashboard + JSON-API
 ```

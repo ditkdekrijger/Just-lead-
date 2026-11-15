@@ -42,7 +42,8 @@ def structured(system: str, prompt: str, schema: type[T], *, max_tokens: int = 1
             betas=[FALLBACK_BETA],
             fallbacks="default",
         )
-    except anthropic.APIError as e:
+    except (anthropic.AnthropicError, TypeError, ValueError) as e:
+        # TypeError: SDK zonder bruikbare credentials; ValueError: output viel niet te valideren
         raise LLMError(f"Claude API-fout: {e}") from e
     if resp.stop_reason == "refusal":
         raise LLMError("Claude weigerde dit verzoek")
@@ -81,7 +82,7 @@ def run_tool_loop(
                 betas=[FALLBACK_BETA],
                 fallbacks="default",
             )
-        except anthropic.APIError as e:
+        except (anthropic.AnthropicError, TypeError) as e:
             raise LLMError(f"Claude API-fout: {e}") from e
 
         if resp.stop_reason == "refusal":

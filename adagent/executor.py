@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from .analysis import in_learning
 from .config import settings
+from .approval import prepare_ad
 from .fmt import euro
 from .copywriting import CTA_BY_OBJECTIVE, AdCopy, enforce, template_copy
 from .models import Action, Ad, AgentRun, Campaign, Client
@@ -165,7 +166,8 @@ class Executor:
 
         return self._guarded("pause_ad", do, campaign=camp, ad=ad, reason=reason)
 
-    def create_ad(self, campaign_id: int, copy: AdCopy, reason: str, theme: str | None = None) -> str:
+    def create_ad(self, campaign_id: int, copy: AdCopy, reason: str, theme: str | None = None,
+                  visual: dict | None = None) -> str:
         camp = self._campaign(campaign_id)
         theme = theme or camp.theme
         limits = copy_limits_for(camp.platform)
@@ -177,17 +179,23 @@ class Executor:
                 raise GuardrailError(f"Maximaal {settings.max_new_ads_per_day} nieuwe advertenties per dag")
             if camp.status == "error":
                 raise GuardrailError("Campagne staat in foutstatus")
+            if any(a.status == "pending" for a in camp.ads):
+                raise GuardrailError("Er wacht al een nieuwe variant op akkoord in deze campagne")
             existing = {h.lower() for a in camp.ads for h in a.headlines[:1]}
             if fitted.headlines and fitted.headlines[0].lower() in existing:
                 raise GuardrailError("Deze kop bestaat al in de campagne; schrijf een echt nieuwe invalshoek")
             gen = max((a.generation for a in camp.ads), default=0) + 1
             ad = Ad(campaign_id=camp.id, theme=theme, headlines=fitted.headlines, descriptions=fitted.descriptions,
                     primary_text=fitted.primary_text, cta=CTA_BY_OBJECTIVE[camp.objective],
-                    landing_url=self.client.website, generation=gen)
+                    landing_url=self.client.website, generation=gen, visual=visual or {})
             camp.ads.append(ad)
             self.s.flush()
-            self._conn(camp.platform).create_ad(camp, ad)
+            prepare_ad(self.client, camp, ad)
             self.new_ads_today += 1
+            if ad.status == "pending":
+                return f"Nieuwe advertentie {ad.id} (generatie {gen}) klaargezet voor akkoord in {camp.name}"
+            if camp.external_id:
+                self._conn(camp.platform).create_ad(camp, ad)
             return f"Nieuwe advertentie {ad.id} (generatie {gen}) in {camp.name}"
 
         return self._guarded("create_ad", do, campaign=camp, params=params, reason=reason)

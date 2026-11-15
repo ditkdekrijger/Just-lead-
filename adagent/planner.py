@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from . import llm
 from .clock import days_in_month
 from .config import settings
+from .approval import prepare_ad
 from .copywriting import CTA_BY_OBJECTIVE, AdCopy, enforce, make_copy, template_copy
 from .models import OBJECTIVE_LABELS, OBJECTIVES, PLATFORM_LABELS, PLATFORMS, Action, Ad, Campaign, Client
 from .platforms import MIN_DAILY_BUDGET, PlatformError, copy_limits_for, get_connector
@@ -267,8 +268,19 @@ def launch_plan(session: Session, client: Client, today: dt.date, run_id: int | 
         camp.targeting["keywords"] = list(dict.fromkeys(k for k in keywords if k))[:50]
         camp.ads = ads
         client.campaigns.append(camp)
-        session.flush()  # ids nodig voor externe namen
+        session.flush()  # ids nodig voor externe namen en bestandsnamen
+        for ad in ads:
+            prepare_ad(client, camp, ad)
 
+        if client.creative_approval:
+            # Tussenstap: niets publiceren tot het materiaal is goedgekeurd
+            camp.status, camp.launched_on = "pending", None
+            session.add(Action(client_id=client.id, run_id=run_id, campaign_id=camp.id, type="prepare_campaign",
+                               params={"daily_budget": camp.daily_budget, "ads": len(ads)},
+                               reason=f"Startplan: {OBJECTIVE_LABELS[spec.objective]} via {PLATFORM_LABELS[spec.platform]}",
+                               status="applied", message=f"{len(ads)} advertenties klaargezet voor akkoord"))
+            created.append(camp)
+            continue
         try:
             connector = get_connector(client, spec.platform)
             connector.create_campaign(camp, ads, active=client.autopilot)
@@ -285,6 +297,6 @@ def launch_plan(session: Session, client: Client, today: dt.date, run_id: int | 
             session.add(Action(client_id=client.id, run_id=run_id, campaign_id=camp.id, type="launch_campaign",
                                status="failed", message=str(e)[:2000]))
         created.append(camp)
-    if client.status == "new":
+    if client.status == "new" and not client.creative_approval:
         client.status = "active"
     return created

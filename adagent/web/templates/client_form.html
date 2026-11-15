@@ -107,6 +107,24 @@ aside.pv{position:sticky;top:76px;min-width:0}
 .sum dt{color:var(--muted)}.sum dd{margin:0;font-weight:500}
 .callout{background:#fff1ea;border-radius:12px;padding:12px 14px;font-size:14px;color:var(--body)}
 .sheet-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+.brandrow{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:22px;align-items:start}
+.color{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--field);padding:6px 0;cursor:pointer}
+.color input{width:40px;height:40px;border:0;padding:0;background:none;cursor:pointer;border-radius:50%}
+.color input::-webkit-color-swatch-wrapper{padding:0}.color input::-webkit-color-swatch{border:1px solid var(--line-strong);border-radius:50%}
+.color span{font-family:ui-monospace,monospace;font-size:15px}
+.mini{aspect-ratio:1/1;border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;position:relative;max-width:220px;width:100%;border:1px solid var(--line)}
+.mini .mb{position:absolute;top:12px;left:12px;font-size:9px;font-weight:600;border-radius:99px;padding:2px 7px}
+.mini .mn{position:absolute;top:12px;right:12px;font-size:9px;font-weight:800;max-width:50%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini b{font-size:19px;line-height:1.02;font-weight:800;letter-spacing:-.02em}
+.mini .ms{font-size:9px;opacity:.82}
+.mini .mc{align-self:flex-start;font-size:9px;font-weight:700;border-radius:99px;padding:4px 9px}
+.file{font-size:14px;padding:8px 0}
+.file::file-selector-button{border:1px solid var(--black);background:var(--surface);border-radius:99px;padding:6px 14px;font:inherit;font-weight:600;margin-right:10px;cursor:pointer}
+.thumbs{display:flex;flex-wrap:wrap;gap:10px}
+.thumb{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);width:120px}
+.thumb img{width:120px;height:90px;object-fit:cover;border-radius:10px}
+.fld[hidden]{display:none}
+@media (max-width:720px){.brandrow{grid-template-columns:1fr 1fr}.mini{grid-column:1/-1}}
 @media (max-width:1060px){.layout{grid-template-columns:1fr}aside.pv{position:static}.camps{max-height:none}}
 @media (max-width:720px){.row,.acc-body{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,1fr)}.tiles.three{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.block{padding:20px}}
 </style>
@@ -122,7 +140,7 @@ aside.pv{position:sticky;top:76px;min-width:0}
 {% if errors %}<div class="errors" style="margin-top:20px">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
 
 <div class="layout">
-<form class="cf" id="cf" method="post" action="{{ '/clients/%d/edit'|format(c.id) if editing else '/clients' }}" novalidate>
+<form class="cf" id="cf" method="post" enctype="multipart/form-data" action="{{ '/clients/%d/edit'|format(c.id) if editing else '/clients' }}" novalidate>
   <input type="hidden" name="themes" id="themes-val" value="{{ (c.themes|join('\n')) if c is not none else '' }}">
   <input type="hidden" name="locations" id="loc-val" value="{{ (c.locations|join(',')) if c is not none else 'NL' }}">
   <input type="hidden" name="monthly_budget" id="budget-val" value="{{ (c.monthly_budget|int) if c is not none and c.monthly_budget else '' }}">
@@ -195,6 +213,32 @@ aside.pv{position:sticky;top:76px;min-width:0}
         {% endfor %}
       </div>
     </details>
+
+  <section class="block" id="b5">
+    <div class="block-head"><span class="n">5</span><div><h2>Advertentiemateriaal en akkoord</h2><p>De agent maakt bij elke advertentie een bijpassend beeld in de huisstijl van de klant.</p></div></div>
+    <div class="brandrow">
+      <div class="fld"><span class="lbl">Merkkleur</span><label class="color"><input type="color" id="brand_color" name="brand_color" value="{{ c.brand_color if c is not none and c.brand_color else '#0a0a0b' }}"><span id="brand_hex"></span></label></div>
+      <div class="fld"><span class="lbl">Accentkleur</span><label class="color"><input type="color" id="accent_color" name="accent_color" value="{{ c.accent_color if c is not none and c.accent_color else '#ff5a1f' }}"><span id="accent_hex"></span></label><span class="hint">Voor knoppen en labels op het beeld.</span></div>
+      <div class="mini" id="mini" aria-hidden="true"><span class="mb">Vrijblijvend</span><span class="mn" id="mini-name">{{ c.name if c is not none and c.name else 'Klantnaam' }}</span><b id="mini-h">Thema in één scherpe belofte</b><span class="ms">Ondertitel met het voordeel</span><span class="mc">Vraag advies aan</span></div>
+    </div>
+    <div class="row">
+      <div class="fld"><label for="logo">Logo <span class="hint">PNG met transparante achtergrond werkt het best</span></label>
+        <input class="file" type="file" id="logo" name="logo" accept="image/png,image/jpeg,image/webp">
+        {% if c is not none and c.logo_path %}<span class="hint">Huidig logo: {{ c.logo_path.split('/')[-1] }} <label style="display:inline-flex;gap:4px;margin-left:8px"><input type="checkbox" name="remove_logo" value="1"> verwijderen</label></span>{% endif %}
+      </div>
+      <div class="fld"><label for="photos">Eigen foto's <span class="hint">team, project, product; geen stockbeeld</span></label>
+        <input class="file" type="file" id="photos" name="photos" accept="image/png,image/jpeg,image/webp" multiple>
+        <span class="hint">Met foto's wisselt de agent af tussen foto-advertenties en tekstbeelden.</span>
+      </div>
+    </div>
+    {% if c is not none and c.photos %}
+    <div class="thumbs">{% for ph in c.photos %}<label class="thumb"><img src="/clients/{{ c.id }}/media/{{ ph.split('/')[-1] }}" alt=""><span><input type="checkbox" name="remove_photo" value="{{ ph.split('/')[-1] }}"> verwijderen</span></label>{% endfor %}</div>
+    {% endif %}
+    <label class="switch"><input type="checkbox" id="creative_approval" name="creative_approval" value="1" {{ 'checked' if c is none or c.creative_approval }}><span class="track"></span><span><b>Akkoord vóór publiceren</b><span class="s">Nieuwe advertenties en beelden worden eerst klaargezet. Pas na goedkeuring gaan ze live. Afwijzen met feedback geeft een nieuwe versie.</span></span></label>
+    <div class="fld" id="fld-timeout" style="max-width:360px"><label for="approval_timeout_hours">Als er niet gereageerd wordt</label>
+      <select class="inp" id="approval_timeout_hours" name="approval_timeout_hours">
+        {% for h, l in [(0,'Blijven wachten op akkoord'),(24,'Na 24 uur automatisch goedkeuren'),(48,'Na 48 uur automatisch goedkeuren'),(72,'Na 72 uur automatisch goedkeuren')] %}<option value="{{ h }}" {{ 'selected' if c is not none and c.approval_timeout_hours == h }}>{{ l }}</option>{% endfor %}
+      </select></div>
   </section>
 </form>
 
@@ -248,6 +292,7 @@ aside.pv{position:sticky;top:76px;min-width:0}
     themes.forEach((t,i)=>{const c=document.createElement("span");c.className="tchip";c.innerHTML=`${esc(t)}<button type="button" aria-label="Verwijder ${esc(t)}">×</button>`;c.querySelector("button").onclick=()=>{themes.splice(i,1);renderThemes();update()};box.insertBefore(c,inp)});
     inp.placeholder=themes.length?"Nog een thema…":"Typ een thema en druk op Enter";
     $("themes-val").value=themes.join("\n");
+    if(typeof mini==="function")try{mini()}catch(_){}
   }
   function sync(){
     document.querySelectorAll("[data-o].tile").forEach(b=>b.setAttribute("aria-pressed",$("obj_"+b.dataset.o).checked));
@@ -303,10 +348,11 @@ aside.pv{position:sticky;top:76px;min-width:0}
     $("b3").classList.toggle("done",!e.obj&&!e.pf);$("b4").classList.toggle("done",!Object.keys(e).length);
     const n=Object.keys(e).length,ap=$("autopilot").checked;
     $("submit-btn").disabled=!!n;
-    $("why").textContent=n?`Nog ${n} ${n===1?"ding":"dingen"} invullen: ${Object.values(e)[0].replace(/\.$/,"").toLowerCase()}.`:(EDITING?"":(ap?"Gaat direct live. Eerste analyse morgen om {{ '%02d'|format(settings.daily_hour) }}:00.":"Campagnes worden gepauzeerd aangemaakt."));
+    const appr=$("creative_approval").checked;
+    $("why").textContent=n?`Nog ${n} ${n===1?"ding":"dingen"} invullen: ${Object.values(e)[0].replace(/\.$/,"").toLowerCase()}.`:(EDITING?"":(appr?"Advertenties en beelden worden eerst klaargezet voor akkoord.":(ap?"Gaat direct live. Eerste analyse morgen om {{ '%02d'|format(settings.daily_hour) }}:00.":"Campagnes worden gepauzeerd aangemaakt.")));
     $("ap-t").textContent=ap?"Autopilot aan":"Autopilot uit";
     $("ap-s").textContent=ap?"De agent voert elke ochtend zelf de aanpassingen uit, binnen de vaste grenzen."+(EDITING?"":" Campagnes gaan direct live."):"De agent doet elke ochtend voorstellen, jij beslist."+(EDITING?"":" Campagnes worden gepauzeerd aangemaakt.");
-    if(!EDITING)$("submit-btn").textContent=ap?"Plan maken en lanceren":"Plan maken (gepauzeerd)";
+    if(!EDITING)$("submit-btn").textContent=appr?"Plan en advertenties maken":(ap?"Plan maken en lanceren":"Plan maken (gepauzeerd)");
     requestPreview();
   }
 
@@ -347,17 +393,30 @@ aside.pv{position:sticky;top:76px;min-width:0}
         <dt>Budget</dt><dd>${eur(budget())} per maand${tot?` · ${eur(tot,2)} per dag om te starten`:""}</dd>
         <dt>Thema's</dt><dd>${themes.map(esc).join(", ")}</dd>
         ${P.campaigns.length?`<dt>Bouwt</dt><dd>${P.campaigns.length} campagnes op ${used.join(", ")}</dd>`:""}
-        <dt>Status</dt><dd>${ap?"Direct live, autopilot aan":"Gepauzeerd, autopilot uit"}</dd>
+        <dt>Status</dt><dd>${$("creative_approval").checked?"Eerst akkoord op advertenties en beelden, daarna "+(ap?"direct live":"gepauzeerd"):(ap?"Direct live, autopilot aan":"Gepauzeerd, autopilot uit")}</dd>
       </dl>
-      ${ap&&LIVE?`<div class="callout">Na lanceren geeft de agent echt geld uit, tot maximaal het maandbudget. Twijfel je over de accounts, zet dan eerst autopilot uit.</div>`:""}
+      ${ap&&LIVE&&!$("creative_approval").checked?`<div class="callout">Na lanceren geeft de agent echt geld uit, tot maximaal het maandbudget. Twijfel je over de accounts, zet dan eerst autopilot uit.</div>`:""}
       ${!LIVE?`<div class="callout">Sandbox-modus: er worden geen echte campagnes aangemaakt.</div>`:""}
-      <div class="sheet-actions"><button type="button" class="btn" id="s-back">Terug</button><button type="button" class="btn primary" id="s-go">${ap?"Ja, lanceren":"Ja, aanmaken"}</button></div>`;
+      <div class="sheet-actions"><button type="button" class="btn" id="s-back">Terug</button><button type="button" class="btn primary" id="s-go">${$("creative_approval").checked?"Ja, maken":(ap?"Ja, lanceren":"Ja, aanmaken")}</button></div>`;
     sheet.hidden=false;$("s-go").focus();
     $("s-back").onclick=close;
-    $("s-go").onclick=()=>{$("s-go").disabled=true;$("s-go").textContent="Bezig met opzetten…";$("cf").submit()};
+    $("s-go").onclick=()=>{$("s-go").disabled=true;$("s-go").textContent="Advertenties en beelden maken…";$("cf").submit()};
   };
 
-  renderRegions();renderThemes();update();
+  /* huisstijl-voorbeeld */
+  function lum(h){const n=parseInt(h.slice(1),16),c=[(n>>16)&255,(n>>8)&255,n&255].map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4});return .2126*c[0]+.7152*c[1]+.0722*c[2]}
+  function mini(){
+    const b=$("brand_color").value,a=$("accent_color").value,ink=lum(b)>.4?"#0a0a0b":"#ffffff",aink=lum(a)>.4?"#0a0a0b":"#ffffff";
+    const m=$("mini");m.style.background=b;m.style.color=ink;
+    m.querySelectorAll(".mb,.mc").forEach(e=>{e.style.background=a;e.style.color=aink});
+    $("brand_hex").textContent=b;$("accent_hex").textContent=a;
+    $("mini-name").textContent=$("name").value.trim()||"Klantnaam";
+    $("mini-h").textContent=themes[0]?themes[0]+" zonder gedoe":"Thema in één scherpe belofte";
+    $("fld-timeout").hidden=!$("creative_approval").checked;
+  }
+  ["brand_color","accent_color","name","creative_approval"].forEach(id=>$(id).addEventListener("input",mini));
+  $("creative_approval").addEventListener("change",()=>{mini();update()});
+  renderRegions();renderThemes();update();mini();
 })();
 </script>
 {% endblock %}

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import datetime as dt
 import time
+from pathlib import Path
 from urllib.parse import quote
 
 import httpx2 as httpx
@@ -137,7 +138,11 @@ class LinkedInConnector(Connector):
             "content": {"article": {"source": link, "title": (ad.headlines or [""])[0],
                                     "description": (ad.descriptions or [""])[0]}},
         }
-        if campaign.objective == "leads" and self.client.linkedin_lead_form_id:
+        image = (ad.assets or {}).get("191x100") or (ad.assets or {}).get("1x1")
+        if image and Path(image).exists():
+            post["content"] = {"media": {"id": self._upload_image(image), "title": (ad.headlines or [""])[0]}}
+            post["contentLandingPage"] = link
+        elif campaign.objective == "leads" and self.client.linkedin_lead_form_id:
             post.pop("content")
         post_urn = self._create("posts", post)
         creative: dict = {
@@ -151,6 +156,21 @@ class LinkedInConnector(Connector):
                 "label": CTA_LABEL.get(ad.cta, "LEARN_MORE"),
             }
         ad.external_id = self._create(f"adAccounts/{self.acc}/creatives", creative)
+
+    def _upload_image(self, path: str) -> str:
+        resp = self.http.post(
+            f"{API}/images?action=initializeUpload", headers=self._headers(),
+            json={"initializeUploadRequest": {"owner": f"urn:li:organization:{self.client.linkedin_org_id}"}},
+        )
+        raise_for(resp, "LinkedIn")
+        value = resp.json().get("value", {})
+        upload_url, urn = value.get("uploadUrl"), value.get("image")
+        if not upload_url or not urn:
+            raise PlatformError(f"LinkedIn gaf geen upload-URL terug: {resp.text[:300]}")
+        put = self.http.put(upload_url, content=Path(path).read_bytes(),
+                            headers={"Authorization": f"Bearer {settings.linkedin_access_token}"})
+        raise_for(put, "LinkedIn upload")
+        return urn
 
     def set_ad_status(self, campaign: Campaign, ad: Ad, active: bool) -> None:
         self._patch(
