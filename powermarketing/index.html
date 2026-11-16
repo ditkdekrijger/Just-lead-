@@ -26,11 +26,12 @@
   .page { width: 100%; max-width: 1440px; margin: 0 auto; padding: 64px 56px 56px; }
 
   /* Header */
-  .intro { display: flex; flex-direction: column; gap: 18px; margin-bottom: 48px; max-width: 900px; }
+  .intro { display: flex; flex-direction: column; gap: 18px; margin-bottom: 48px; max-width: 1120px; }
   .intro__meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .badge { background: var(--ink); color: #fff; border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; letter-spacing: .06em; }
   .intro__sub { font-size: 13px; color: var(--ink-3); }
-  .intro h1 { margin: 0; font-size: clamp(40px, 6vw, 68px); line-height: 1.02; font-weight: 800; letter-spacing: -.035em; }
+  .intro h1 { margin: 0; font-size: clamp(34px, 5.6vw, 68px); line-height: 1.02; font-weight: 800; letter-spacing: -.035em; }
+  .nowrap { white-space: nowrap; }
   .outline { font-style: italic; color: transparent; -webkit-text-stroke: 2px var(--ink); }
   .intro p { margin: 0; font-size: 20px; line-height: 1.5; color: var(--ink-2); max-width: 640px; }
 
@@ -42,6 +43,18 @@
 
   .col-head { display: flex; align-items: center; gap: 14px; padding: 0 4px; }
   .col-head h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+  .col-head--movable { cursor: grab; border-radius: 999px; }
+  .col-head--movable:active { cursor: grabbing; }
+  .is-dragging .col-head:not(.col-head--movable) { outline: 2px dashed var(--line); outline-offset: 6px; border-radius: 999px; }
+  .col-head.is-target { outline-color: var(--accent) !important; }
+  .mover { margin-left: auto; display: inline-flex; gap: 4px; }
+  .mover__btn {
+    appearance: none; width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  }
+  .mover__btn:hover:not(:disabled) { border-color: var(--ink); }
+  .mover__btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .mover__btn:disabled { opacity: .3; cursor: default; }
   .disc { border-radius: 999px; background: var(--accent); color: var(--ink); display: flex; align-items: center; justify-content: center; flex: none; }
   .disc--lg { width: 56px; height: 56px; }
   .disc--sm { width: 34px; height: 34px; }
@@ -72,21 +85,22 @@
 
   /* Tools */
   .tools-title { font-size: 15px; font-weight: 700; padding-top: 6px; }
-  .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
+  .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
   .chip {
-    display: inline-flex; align-items: center; gap: 8px;
-    border: 1px solid var(--chip-line); border-radius: 999px; padding: 5px 14px 5px 5px;
-    font-size: 14px; line-height: 1.3; color: var(--ink); background: var(--bg);
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--chip-line); border-radius: 999px; padding: 2px 9px 2px 2px;
+    font-size: 12px; line-height: 1.3; color: var(--ink); background: var(--bg); white-space: nowrap;
   }
   .tool-icon {
-    width: 26px; height: 26px; border-radius: 999px; background: #F2F2F3; color: var(--ink);
+    width: 18px; height: 18px; border-radius: 999px; background: #F2F2F3; color: var(--ink);
     display: inline-flex; align-items: center; justify-content: center; flex: none;
   }
+  .tool-icon svg { width: 11px; height: 11px; }
   .chip .tool-icon[data-brand] { color: var(--brand); }
   .tool-icon--fill, .tool-icon--fit { overflow: hidden; }
   .tool-icon--fill img, .tool-icon--fill svg { width: 100%; height: 100%; object-fit: cover; }
   .tool-icon--fit { background: #fff; border: 1px solid #ECECEE; }
-  .tool-icon--fit img { width: 18px; height: 18px; object-fit: contain; }
+  .tool-icon--fit img { width: 12px; height: 12px; object-fit: contain; }
 
   .partners { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: #B9B9BE; }
   .partner { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #3A3A3F; border-radius: 999px; padding: 5px 12px 5px 8px; color: #fff; font-size: 13px; font-weight: 500; }
@@ -116,17 +130,17 @@
       <span class="badge">POWERMARKETING™</span>
       <span class="mono intro__sub">opzet 1 · RACE-grid</span>
     </div>
-    <h1>Vier gebieden, vier fases, één <span class="outline">grid</span>.</h1>
+    <h1>Vier werkgebieden, vier fases, één <span class="outline nowrap">Powermarketing&#8209;aanpak</span>.</h1>
     <p>Klik de blokken aan om per onderdeel een raket te lanceren en zo je marketingmix te bepalen.</p>
   </header>
 
   <div class="scroller">
     <div class="board">
-      <div class="row row--head" id="col-heads"><div></div></div>
+      <div class="row row--head" id="col-heads"></div>
       <div class="row" id="grid"></div>
       <div class="footnote">*Change: onderwerpen over alle fases toepasbaar</div>
       <div class="rule"></div>
-      <div class="row" id="tools"><div class="tools-title">Tools &amp; kanalen</div></div>
+      <div class="row" id="tools"></div>
     </div>
   </div>
 
@@ -158,6 +172,8 @@ const LINE = {
   sales: '<rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20a1 1 0 001 1h12a1 1 0 001-1v-7.5M12 8.5V21"/><path d="M12 8.5C10.5 5 6.5 4 6.5 6.5S9.5 8.5 12 8.5zM12 8.5C13.5 5 17.5 4 17.5 6.5S14.5 8.5 12 8.5z"/>',
   code: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',
   change: '<path d="M7 15a5 5 0 0110 0"/><path d="M2.5 15h19M6 18.5h12M9.5 22h5"/><path d="M12 4v2.5M5.3 7.3l1.8 1.8M18.7 7.3l-1.8 1.8"/>',
+  left: '<path d="M15 6l-6 6 6 6"/>',
+  right: '<path d="M9 6l6 6-6 6"/>',
   // Fasegezichtjes: van slaperig (bereik) naar blij (sales).
   face1: '<circle cx="12" cy="12" r="9"/><path d="M7.5 10.5c.7.6 1.6.6 2.3 0M14.2 10.5c.7.6 1.6.6 2.3 0M9.5 15.5h5"/>',
   face2: '<circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="10" r=".9" fill="currentColor"/><path d="M9.5 15h5"/>',
@@ -186,6 +202,8 @@ const LINE = {
 
 // Nagetekende merktekens (volledige SVG, eigen kleuren).
 const MARK = {
+  strategyzer: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" fill="#fff"/><path d="M12 5.2A6.8 6.8 0 1 0 18.8 12" fill="none" stroke="#0A0A0B" stroke-width="3.2"/><path d="M12.6 12.6h5.2v5.2h-5.2z" fill="#0A0A0B"/></svg>',
+  covey: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" fill="#fff"/><circle cx="12" cy="12" r="6" fill="none" stroke="#0A0A0B" stroke-width="2.6"/><path d="M12 1.5l1.3 9.2L12 12l-1.3-1.3zM12 22.5l-1.3-9.2L12 12l1.3 1.3zM1.5 12l9.2-1.3L12 12l-1.3 1.3zM22.5 12l-9.2 1.3L12 12l1.3-1.3z" fill="#0A0A0B"/><circle cx="12" cy="12" r="2.4" fill="#fff"/></svg>',
   lean: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 17.6A8.6 8.6 0 1 1 9 20.3" fill="none" stroke="#1BA6DE" stroke-width="2.8" stroke-linecap="round"/></svg>',
   brandthechange: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" fill="#FFF200"/><circle cx="12" cy="12" r="4.6" fill="#0A0A0B"/><g stroke="#0A0A0B" stroke-width="1.6" stroke-linecap="square"><path d="M12 3.2v2.3M12 18.5v2.3M3.2 12h2.3M18.5 12h2.3M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M5.8 18.2l1.6-1.6M16.6 7.4l1.6-1.6"/></g></svg>',
 };
@@ -225,7 +243,7 @@ const AREAS = [
   { key: 'm', name: 'Marketing', icon: 'marketing' },
   { key: 's', name: 'Sales',     icon: 'sales' },
   { key: 'c', name: 'Code',      icon: 'code' },
-  { key: 'x', name: 'Change*',   icon: 'change', aria: 'Change' },
+  { key: 'x', name: 'Change*',   icon: 'change', aria: 'Change', movable: true },
 ];
 
 // Fases (rijen): Bereik, Kliks, Leads, Sales — met de RACE-fase als ondertitel.
@@ -239,7 +257,7 @@ const PHASES = [
 // CELLS[fase][gebied] = [label, icoon]
 const CELLS = [
   [['Displaycampagnes, SEO', 'eye'], ['Direct mail, events', 'mail'], ['Sites, platforms', 'browser'], ['Merk- & productpositionering', 'compass']],
-  [['Klikcampagnes, UI/UX', 'cursor'], ['Salespitch, lead-inzichten', 'chat'], ["PDP's, CRO", 'bag'], ['Processen & structuur', 'org']],
+  [['Klikcampagnes, UI/UX', 'cursor'], ['Salespitch, lead-inzichten', 'chat'], ['Landingspages, CRO', 'bag'], ['Processen & structuur', 'org']],
   [['Leadcampagnes', 'funnel'], ['Follow-up, (bel-)scripts', 'phone'], ['Configurators, pijplijn', 'sliders'], ['Leiderschap & management', 'people']],
   [['Retargetingcampagnes, datamanagement', 'target'], ['Pitch, salestechniek', 'board'], ['Dashboards, automations', 'bars'], ['Businessmodel & waardepropositie', 'canvas']],
 ];
@@ -262,7 +280,7 @@ const TOOLS = [
     ['shopify', 'Shopify', '#7AB55C'], ['wordpress', 'WordPress', '#21759B'], ['laravel', 'Laravel', '#FF2D20'],
   ],
   [
-    ['img:strategyzer', 'Strategyzer'], ['compass', 'Covey'], ['mark:lean', 'Lean'], ['mark:brandthechange', 'Brandling'],
+    ['mark:strategyzer', 'Strategyzer'], ['mark:covey', 'Covey'], ['mark:lean', 'Lean'], ['mark:brandthechange', 'Brand the Change'],
   ],
 ];
 
@@ -285,21 +303,47 @@ function toolIcon(ic, extra) {
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
-document.getElementById('col-heads').insertAdjacentHTML('beforeend', AREAS.map((a) => `
-  <div class="col-head"><div class="disc disc--lg">${icon(a.icon, 28)}</div><h2>${a.name}</h2></div>`).join(''));
+// Kolomvolgorde (indexen in AREAS). Change is verplaatsbaar; de keuze wordt per browser onthouden.
+const ORDER_KEY = 'powermarketing-order';
+let order = [0, 1, 2, 3];
+try {
+  const saved = JSON.parse(localStorage.getItem(ORDER_KEY));
+  if (Array.isArray(saved) && saved.slice().sort().join() === '0,1,2,3') order = saved;
+} catch (e) { /* geen opslag beschikbaar */ }
 
-let n = 0;
-document.getElementById('grid').innerHTML = PHASES.map((p, r) => `
+const MOVABLE = AREAS.findIndex((a) => a.movable);
+
+function render() {
+  const pos = order.indexOf(MOVABLE);
+
+  document.getElementById('col-heads').innerHTML = '<div></div>' + order.map((c) => {
+    const a = AREAS[c];
+    if (!a.movable) {
+      return `<div class="col-head" data-col="${c}"><div class="disc disc--lg">${icon(a.icon, 28)}</div><h2>${a.name}</h2></div>`;
+    }
+    return `
+  <div class="col-head col-head--movable" data-col="${c}" draggable="true" title="Sleep om ${a.aria} te verplaatsen">
+    <div class="disc disc--lg">${icon(a.icon, 28)}</div><h2>${a.name}</h2>
+    <span class="mover">
+      <button type="button" class="mover__btn" data-move="-1" aria-label="${a.aria} naar links"${pos === 0 ? ' disabled' : ''}>${icon('left', 16)}</button>
+      <button type="button" class="mover__btn" data-move="1" aria-label="${a.aria} naar rechts"${pos === order.length - 1 ? ' disabled' : ''}>${icon('right', 16)}</button>
+    </span>
+  </div>`;
+  }).join('');
+
+  let n = 0;
+  document.getElementById('grid').innerHTML = PHASES.map((p, r) => `
   <div class="phase">
     <div class="phase__title"><span class="disc disc--sm">${icon(p.face, 22)}</span><h3>${p.stage}</h3></div>
     <div class="phase__desc">${esc(p.desc)}</div>
     <div class="phase__stage mono">${p.flow} · ${p.race}</div>
-  </div>` + AREAS.map((a, c) => {
+  </div>` + order.map((c) => {
+    const a = AREAS[c];
     const id = a.key + (r + 1);
     const [label, ic] = CELLS[r][c];
     n += 1;
     return `
-  <button type="button" class="cell" data-id="${id}" aria-pressed="${selected.has(id)}"
+  <button type="button" class="cell${a.movable ? ' cell--movable' : ''}" data-id="${id}" aria-pressed="${selected.has(id)}"
           aria-label="${esc(`${a.aria || a.name}, ${p.stage}: ${label}`)}">
     <span class="cell__top"><span class="mono">${String(n).padStart(2, '0')}</span><span class="cell__rocket">${icon('rocket')}</span></span>
     <span>${icon(ic, 36)}</span>
@@ -307,10 +351,23 @@ document.getElementById('grid').innerHTML = PHASES.map((p, r) => `
   </button>`;
   }).join('')).join('');
 
-document.getElementById('tools').insertAdjacentHTML('beforeend', TOOLS.map((group) => `
-  <ul class="chips">${group.map(([ic, name, brand]) => `
+  document.getElementById('tools').innerHTML = '<div class="tools-title">Tools &amp; kanalen</div>' + order.map((c) => `
+  <ul class="chips">${TOOLS[c].map(([ic, name, brand]) => `
     <li class="chip">${toolIcon(ic, brand)}${esc(name)}</li>`).join('')}
-  </ul>`).join(''));
+  </ul>`).join('');
+
+  updateCount();
+}
+
+function moveTo(target) {
+  const from = order.indexOf(MOVABLE);
+  const to = Math.max(0, Math.min(order.length - 1, target));
+  if (from === to) return;
+  order.splice(from, 1);
+  order.splice(to, 0, MOVABLE);
+  try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch (e) { /* negeren */ }
+  render();
+}
 
 document.querySelectorAll('[data-icon]').forEach((el) => {
   el.outerHTML = icon(el.dataset.icon, Number(el.dataset.size) || 24);
@@ -333,7 +390,44 @@ document.getElementById('grid').addEventListener('click', (e) => {
   updateCount();
 });
 
-updateCount();
+// Verplaatsen met de pijltjes.
+const heads = document.getElementById('col-heads');
+heads.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-move]');
+  if (!btn) return;
+  const dir = Number(btn.dataset.move);
+  moveTo(order.indexOf(MOVABLE) + dir);
+  const again = heads.querySelector(`[data-move="${dir}"]:not([disabled])`) || heads.querySelector('[data-move]:not([disabled])');
+  if (again) again.focus();
+});
+
+// Verplaatsen door te slepen naar een andere kolomkop.
+heads.addEventListener('dragstart', (e) => {
+  if (!e.target.closest('.col-head--movable')) return;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', 'change');
+  document.body.classList.add('is-dragging');
+});
+heads.addEventListener('dragend', () => {
+  document.body.classList.remove('is-dragging');
+  heads.querySelectorAll('.is-target').forEach((el) => el.classList.remove('is-target'));
+});
+heads.addEventListener('dragover', (e) => {
+  const head = e.target.closest('.col-head');
+  if (!head || !document.body.classList.contains('is-dragging')) return;
+  e.preventDefault();
+  heads.querySelectorAll('.is-target').forEach((el) => el !== head && el.classList.remove('is-target'));
+  head.classList.add('is-target');
+});
+heads.addEventListener('drop', (e) => {
+  const head = e.target.closest('.col-head');
+  if (!head) return;
+  e.preventDefault();
+  document.body.classList.remove('is-dragging');
+  moveTo(order.indexOf(Number(head.dataset.col)));
+});
+
+render();
 </script>
 </body>
 </html>
