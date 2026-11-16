@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Missie · JUST.LEAD</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&display=swap">
+<style>
+/* JUST.LEAD. huisstijl: wit eerst, zwart voor tekst en vlakken, oranje spaarzaam. Archivo. Geen schaduwen. */
+:root{--black:#0a0a0b;--white:#ffffff;--bg-light:#f3f3f3;--accent:#ff5a1f;--font:"Archivo",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--black)}
+.plaat{--bg:var(--black);--ink:#fff;--soft:#ffffffb3;--line:#ffffff29;
+  position:relative;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;
+  width:1920px;height:1080px;--m:120px;--u:1px}
+.plaat.licht{--bg:var(--white);--ink:var(--black);--soft:#3a3a3a;--line:#0a0a0b1a}
+.plaat.staand{width:1080px;height:1350px;--m:88px}
+
+.top{position:absolute;left:var(--m);right:var(--m);top:var(--m);display:flex;align-items:center;justify-content:space-between;z-index:2}
+.logo{font-weight:900;font-style:italic;font-variation-settings:"wdth" 80;font-size:44px;letter-spacing:-.01em;line-height:1}
+.badge{font-weight:500;font-size:24px;padding:12px 26px;border-radius:99px;background:var(--accent);color:var(--black);line-height:1}
+
+.boog{position:absolute;z-index:1}
+.boog path{fill:none;stroke:var(--accent);stroke-width:6}
+
+.tekst{position:absolute;left:var(--m);bottom:var(--m);z-index:2}
+.missie{font-variation-settings:"wdth" 90;font-weight:600;letter-spacing:-.045em;line-height:.9;font-size:250px}
+.missie span{display:block;white-space:nowrap}
+.missie i{font-style:normal;color:var(--accent)}
+.onder{margin-top:56px;display:flex;align-items:center;gap:20px;font-size:26px;font-weight:500;color:var(--soft)}
+.onder .streep{width:56px;height:2px;background:var(--accent)}
+
+/* liggend: boog rechts, rijzend vanaf onderrand */
+.plaat:not(.staand) .boog{right:var(--m);top:200px;width:520px;height:880px}
+/* staand: boog rechtsboven in de lege ruimte boven de tekst */
+.plaat.staand .boog{right:var(--m);top:210px;width:400px;height:610px}
+.plaat.staand .missie{font-size:184px}
+.plaat.staand .onder{margin-top:44px;font-size:24px}
+</style>
+</head>
+<body>
+<div class="plaat" id="plaat">
+  <div class="top">
+    <div class="logo">JUST.LEAD.</div>
+    <div class="badge">Onze missie</div>
+  </div>
+  <svg class="boog" id="boog" aria-hidden="true"></svg>
+  <div class="tekst">
+    <h1 class="missie"><span>Slim zijn<i>.</i></span><span>Goed doen<i>.</i></span></h1>
+    <div class="onder"><span class="streep"></span>Powermarketing voor groeiende bedrijven</div>
+  </div>
+</div>
+<script>
+const p = new URLSearchParams(location.search);
+const el = document.getElementById('plaat');
+if (p.get('thema') === 'licht') { el.classList.add('licht'); document.body.style.background = '#fff'; }
+if (p.get('formaat') === 'staand') el.classList.add('staand');
+// Merkmotief: dubbele boog (buitenboog + binnenboog op 20% inzet), poten lopen door tot de onderrand
+const svg = document.getElementById('boog');
+const r = svg.getBoundingClientRect(), W = r.width, H = r.height;
+svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+const R = W / 2, s = 3, legEnd = el.classList.contains('staand') ? H : H + 10;
+const arch = k => `M ${s + k} ${legEnd} L ${s + k} ${R} A ${R - s - k} ${R - s - k} 0 0 1 ${W - s - k} ${R} L ${W - s - k} ${legEnd}`;
+svg.innerHTML = `<path d="${arch(0)}"/><path d="${arch(R * 0.2)}"/>`;
+</script>
+</body>
+</html>
