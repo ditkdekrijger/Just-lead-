@@ -43,19 +43,10 @@
 
   .col-head { display: flex; align-items: center; gap: 14px; padding: 0 4px; }
   .col-head h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
-  .col-head--movable { cursor: grab; border-radius: 999px; touch-action: none; user-select: none; }
   .cell--movable { cursor: grab; touch-action: none; user-select: none; }
   .is-dragging, .is-dragging * { cursor: grabbing !important; user-select: none; }
-  .is-dragging .cell--movable { box-shadow: 0 10px 24px rgba(10, 10, 11, .14); transform: translateY(-2px); }
-  .is-dragging .col-head--movable h2 { color: var(--accent); }
-  .mover { margin-left: auto; display: inline-flex; gap: 4px; }
-  .mover__btn {
-    appearance: none; width: 30px; height: 30px; border-radius: 999px; border: 1px solid var(--line);
-    background: var(--bg); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
-  }
-  .mover__btn:hover:not(:disabled) { border-color: var(--ink); }
-  .mover__btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
-  .mover__btn:disabled { opacity: .3; cursor: default; }
+  .cell.is-lifted { box-shadow: 0 14px 30px rgba(10, 10, 11, .18); border-color: var(--ink); position: relative; z-index: 2; transition: none; }
+  .cell.is-target { outline: 2px dashed var(--ink); outline-offset: 3px; }
   .disc { border-radius: 999px; background: var(--accent); color: var(--ink); display: flex; align-items: center; justify-content: center; flex: none; }
   .disc--lg { width: 56px; height: 56px; }
   .disc--sm { width: 34px; height: 34px; }
@@ -86,22 +77,22 @@
 
   /* Tools */
   .tools-title { font-size: 15px; font-weight: 700; padding-top: 6px; }
-  .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
+  .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
   .chip {
-    display: inline-flex; align-items: center; gap: 5px;
-    border: 1px solid var(--chip-line); border-radius: 999px; padding: 2px 9px 2px 2px;
-    font-size: 12px; line-height: 1.3; color: var(--ink); background: var(--bg); white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--chip-line); border-radius: 999px; padding: 3px 10px 3px 3px;
+    font-size: 13px; line-height: 1.3; color: var(--ink); background: var(--bg); white-space: nowrap;
   }
   .tool-icon {
-    width: 18px; height: 18px; border-radius: 999px; background: #F2F2F3; color: var(--ink);
+    width: 20px; height: 20px; border-radius: 999px; background: #F2F2F3; color: var(--ink);
     display: inline-flex; align-items: center; justify-content: center; flex: none;
   }
-  .tool-icon svg { width: 11px; height: 11px; }
+  .tool-icon svg { width: 12px; height: 12px; }
   .chip .tool-icon[data-brand] { color: var(--brand); }
   .tool-icon--fill, .tool-icon--fit { overflow: hidden; }
   .tool-icon--fill img, .tool-icon--fill svg { width: 100%; height: 100%; object-fit: cover; }
   .tool-icon--fit { background: #fff; border: 1px solid #ECECEE; }
-  .tool-icon--fit img { width: 12px; height: 12px; object-fit: contain; }
+  .tool-icon--fit img { width: 14px; height: 14px; object-fit: contain; }
 
   .partners { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: #B9B9BE; }
   .partner { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #3A3A3F; border-radius: 999px; padding: 5px 12px 5px 8px; color: #fff; font-size: 13px; font-weight: 500; }
@@ -139,7 +130,7 @@
     <div class="board">
       <div class="row row--head" id="col-heads"></div>
       <div class="row" id="grid"></div>
-      <div class="footnote">*Change: onderwerpen over alle fases toepasbaar</div>
+      <div class="footnote">*Change: onderwerpen over alle fases toepasbaar — sleep een blok naar een andere fase om te wisselen</div>
       <div class="rule"></div>
       <div class="row" id="tools"></div>
     </div>
@@ -173,8 +164,6 @@ const LINE = {
   sales: '<rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20a1 1 0 001 1h12a1 1 0 001-1v-7.5M12 8.5V21"/><path d="M12 8.5C10.5 5 6.5 4 6.5 6.5S9.5 8.5 12 8.5zM12 8.5C13.5 5 17.5 4 17.5 6.5S14.5 8.5 12 8.5z"/>',
   code: '<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',
   change: '<path d="M7 15a5 5 0 0110 0"/><path d="M2.5 15h19M6 18.5h12M9.5 22h5"/><path d="M12 4v2.5M5.3 7.3l1.8 1.8M18.7 7.3l-1.8 1.8"/>',
-  left: '<path d="M15 6l-6 6 6 6"/>',
-  right: '<path d="M9 6l6 6-6 6"/>',
   // Fasegezichtjes: van slaperig (bereik) naar blij (sales).
   face1: '<circle cx="12" cy="12" r="9"/><path d="M7.5 10.5c.7.6 1.6.6 2.3 0M14.2 10.5c.7.6 1.6.6 2.3 0M9.5 15.5h5"/>',
   face2: '<circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="10" r=".9" fill="currentColor"/><path d="M9.5 15h5"/>',
@@ -308,33 +297,19 @@ function toolIcon(ic, extra) {
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
-// Kolomvolgorde (indexen in AREAS). Change is verplaatsbaar; de keuze wordt per browser onthouden.
-const ORDER_KEY = 'powermarketing-order';
-let order = [0, 1, 2, 3];
+// Change-blokken zijn over alle fases toepasbaar en dus verticaal te verwisselen.
+// slots[rij] = index van het Change-onderwerp (rij in CELLS) dat in die fase staat.
+const MOVABLE = AREAS.findIndex((a) => a.movable);
+const SLOTS_KEY = 'powermarketing-change-slots';
+let slots = [0, 1, 2, 3];
 try {
-  const saved = JSON.parse(localStorage.getItem(ORDER_KEY));
-  if (Array.isArray(saved) && saved.slice().sort().join() === '0,1,2,3') order = saved;
+  const saved = JSON.parse(localStorage.getItem(SLOTS_KEY));
+  if (Array.isArray(saved) && saved.slice().sort().join() === '0,1,2,3') slots = saved;
 } catch (e) { /* geen opslag beschikbaar */ }
 
-const MOVABLE = AREAS.findIndex((a) => a.movable);
-
 function render() {
-  const pos = order.indexOf(MOVABLE);
-
-  document.getElementById('col-heads').innerHTML = '<div></div>' + order.map((c) => {
-    const a = AREAS[c];
-    if (!a.movable) {
-      return `<div class="col-head" data-col="${c}"><div class="disc disc--lg">${icon(a.icon, 28)}</div><h2>${a.name}</h2></div>`;
-    }
-    return `
-  <div class="col-head col-head--movable" data-col="${c}" title="Sleep om ${a.aria} te verplaatsen">
-    <div class="disc disc--lg">${icon(a.icon, 28)}</div><h2>${a.name}</h2>
-    <span class="mover">
-      <button type="button" class="mover__btn" data-move="-1" aria-label="${a.aria} naar links"${pos === 0 ? ' disabled' : ''}>${icon('left', 16)}</button>
-      <button type="button" class="mover__btn" data-move="1" aria-label="${a.aria} naar rechts"${pos === order.length - 1 ? ' disabled' : ''}>${icon('right', 16)}</button>
-    </span>
-  </div>`;
-  }).join('');
+  document.getElementById('col-heads').innerHTML = '<div></div>' + AREAS.map((a) => `
+  <div class="col-head"><div class="disc disc--lg">${icon(a.icon, 28)}</div><h2>${a.name}</h2></div>`).join('');
 
   let n = 0;
   document.getElementById('grid').innerHTML = PHASES.map((p, r) => `
@@ -342,13 +317,16 @@ function render() {
     <div class="phase__title"><span class="disc disc--sm">${icon(p.face, 22)}</span><h3>${p.stage}</h3></div>
     <div class="phase__desc">${esc(p.desc)}</div>
     <div class="phase__stage mono">${p.flow} · ${p.race}</div>
-  </div>` + order.map((c) => {
-    const a = AREAS[c];
-    const id = a.key + (r + 1);
-    const [label, ic] = CELLS[r][c];
+  </div>` + AREAS.map((a, c) => {
+    const src = a.movable ? slots[r] : r;          // welk onderwerp staat hier
+    const id = a.key + (src + 1);
+    const [label, ic] = CELLS[src][c];
     n += 1;
+    const extra = a.movable
+      ? ` data-slot="${r}" title="Klik om te kiezen · sleep naar een andere fase om te wisselen (of Alt + ↑/↓)"`
+      : '';
     return `
-  <button type="button" class="cell${a.movable ? ' cell--movable' : ''}" data-id="${id}" aria-pressed="${selected.has(id)}"${a.movable ? ` title="Klik om te kiezen, sleep om ${a.aria} te verplaatsen"` : ''}
+  <button type="button" class="cell${a.movable ? ' cell--movable' : ''}" data-id="${id}" aria-pressed="${selected.has(id)}"${extra}
           aria-label="${esc(`${a.aria || a.name}, ${p.stage}: ${label}`)}">
     <span class="cell__top"><span class="mono">${String(n).padStart(2, '0')}</span><span class="cell__rocket">${icon('rocket')}</span></span>
     <span>${icon(ic, 36)}</span>
@@ -356,7 +334,7 @@ function render() {
   </button>`;
   }).join('')).join('');
 
-  document.getElementById('tools').innerHTML = '<div class="tools-title">Tools &amp; kanalen</div>' + order.map((c) => `
+  document.getElementById('tools').innerHTML = '<div class="tools-title">Tools &amp; kanalen</div>' + AREAS.map((a, c) => `
   <ul class="chips">${TOOLS[c].map(([ic, name, brand]) => `
     <li class="chip">${toolIcon(ic, brand)}${esc(name)}</li>`).join('')}
   </ul>`).join('');
@@ -364,14 +342,13 @@ function render() {
   updateCount();
 }
 
-function moveTo(target) {
-  const from = order.indexOf(MOVABLE);
-  const to = Math.max(0, Math.min(order.length - 1, target));
-  if (from === to) return;
-  order.splice(from, 1);
-  order.splice(to, 0, MOVABLE);
-  try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch (e) { /* negeren */ }
+// Verwissel de Change-onderwerpen van fase 'from' en fase 'to'.
+function swapSlots(from, to) {
+  if (to < 0 || to >= slots.length || from === to) return false;
+  [slots[from], slots[to]] = [slots[to], slots[from]];
+  try { localStorage.setItem(SLOTS_KEY, JSON.stringify(slots)); } catch (e) { /* negeren */ }
   render();
+  return true;
 }
 
 document.querySelectorAll('[data-icon]').forEach((el) => {
@@ -395,60 +372,59 @@ document.getElementById('grid').addEventListener('click', (e) => {
   updateCount();
 });
 
-// Verplaatsen met de pijltjes.
-const heads = document.getElementById('col-heads');
-heads.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-move]');
-  if (!btn) return;
-  const dir = Number(btn.dataset.move);
-  moveTo(order.indexOf(MOVABLE) + dir);
-  const again = heads.querySelector(`[data-move="${dir}"]:not([disabled])`) || heads.querySelector('[data-move]:not([disabled])');
-  if (again) again.focus();
-});
-
-// Verplaatsen door te slepen: pak de Change-kop of een Change-blok en sleep naar links of rechts.
-// Werkt met muis en touch; de kolom schuift live mee.
-let drag = null;        // { startX, active }
+// Verslepen: pak een Change-blok en sleep het naar een andere fase (muis en touch).
+// Bij loslaten wisselen de twee blokken van plek.
+let drag = null;
 let suppressClick = false;
+const grid = document.getElementById('grid');
 
-function columnAt(x) {
-  const cols = [...heads.querySelectorAll('.col-head')];
+function slotAt(y) {
   let best = 0;
   let dist = Infinity;
-  cols.forEach((el, i) => {
-    const r = el.getBoundingClientRect();
-    const d = Math.abs(x - (r.left + r.width / 2));
-    if (d < dist) { dist = d; best = i; }
+  grid.querySelectorAll('.cell--movable').forEach((el) => {
+    // Het versleepte blok zelf telt mee op zijn oorspronkelijke plek (zonder verschuiving).
+    const r = el === drag.el ? drag.home : el.getBoundingClientRect();
+    const d = Math.abs(y - (r.top + r.height / 2));
+    if (d < dist) { dist = d; best = Number(el.dataset.slot); }
   });
   return best;
 }
 
-document.querySelector('.board').addEventListener('pointerdown', (e) => {
-  if (e.button !== 0 || e.target.closest('[data-move]')) return;
-  if (!e.target.closest('.cell--movable, .col-head--movable')) return;
-  drag = { startX: e.clientX, startY: e.clientY, active: false };
+grid.addEventListener('pointerdown', (e) => {
+  const cell = e.target.closest('.cell--movable');
+  if (!cell || e.button !== 0) return;
+  drag = { el: cell, home: cell.getBoundingClientRect(), slot: Number(cell.dataset.slot), startY: e.clientY, target: null, active: false };
 });
 
 window.addEventListener('pointermove', (e) => {
   if (!drag) return;
+  const dy = e.clientY - drag.startY;
   if (!drag.active) {
-    if (Math.abs(e.clientX - drag.startX) < 8) return;
+    if (Math.abs(dy) < 8) return;
     drag.active = true;
     document.body.classList.add('is-dragging');
+    drag.el.classList.add('is-lifted');
   }
   e.preventDefault();
-  const target = columnAt(e.clientX);
-  if (target !== order.indexOf(MOVABLE)) moveTo(target);
+  drag.el.style.transform = `translateY(${dy}px) scale(1.02)`;
+  const target = slotAt(e.clientY);
+  grid.querySelectorAll('.is-target').forEach((el) => el.classList.remove('is-target'));
+  drag.target = target !== drag.slot ? target : null;
+  if (drag.target !== null) grid.querySelector(`.cell--movable[data-slot="${target}"]`).classList.add('is-target');
 });
 
 function endDrag() {
   if (!drag) return;
-  if (drag.active) {
-    suppressClick = true;
-    setTimeout(() => { suppressClick = false; }, 0);
-  }
+  const { active, slot, target, el } = drag;
   drag = null;
   document.body.classList.remove('is-dragging');
+  el.classList.remove('is-lifted');
+  el.style.transform = '';
+  grid.querySelectorAll('.is-target').forEach((x) => x.classList.remove('is-target'));
+  if (!active) return;
+  suppressClick = true;
+  setTimeout(() => { suppressClick = false; }, 0);
+  if (target !== null) swapSlots(slot, target);
 }
 window.addEventListener('pointerup', endDrag);
 window.addEventListener('pointercancel', endDrag);
@@ -457,6 +433,16 @@ window.addEventListener('pointercancel', endDrag);
 document.addEventListener('click', (e) => {
   if (suppressClick) { e.stopPropagation(); e.preventDefault(); suppressClick = false; }
 }, true);
+
+// Toetsenbord: Alt + pijl omhoog/omlaag verwisselt met het blok erboven/eronder.
+grid.addEventListener('keydown', (e) => {
+  const cell = e.target.closest('.cell--movable');
+  if (!cell || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  e.preventDefault();
+  const from = Number(cell.dataset.slot);
+  const id = cell.dataset.id;
+  if (swapSlots(from, from + (e.key === 'ArrowUp' ? -1 : 1))) grid.querySelector(`[data-id="${id}"]`).focus();
+});
 
 render();
 </script>
